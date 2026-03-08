@@ -1,0 +1,47 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'edu.pucmm.eict'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+application {
+    mainClass = 'edu.pucmm.eict.Main'
+}
+
+dependencies {
+    // Javalin 7.x
+    implementation 'io.javalin:javalin:7.0.1'
+    implementation 'org.slf4j:slf4j-simple:2.0.17'
+
+    // ORM y Base de Datos
+    implementation("org.hibernate:hibernate-core:7.2.6.Final")
+    implementation 'com.h2database:h2:2.4.240'
+
+    // Seguridad y JSON
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.1'
+
+    // QR Code
+    implementation 'com.google.zxing:core:3.5.4'
+    implementation 'com.google.zxing:javase:3.5.4'
+
+    // Thymeleaf
+    implementation 'io.javalin:javalin-rendering-thymeleaf:7.0.1'
+    implementation 'org.thymeleaf:thymeleaf:3.1.2.RELEASE'
+
+    // Encriptacion
+    implementation 'org.jasypt:jasypt:1.9.3'
+
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+}
