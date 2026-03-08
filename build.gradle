@@ -11,7 +11,7 @@ repositories {
 }
 
 application {
-    mainClass = 'edu.pucmm.eict.Main'
+    mainClass = 'edu.pucmm.eict.main.Main'
 }
 
 dependencies {

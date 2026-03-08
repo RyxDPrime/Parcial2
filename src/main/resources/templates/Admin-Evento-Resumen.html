@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Resumen · ' + ${evento.titulo}">Resumen</title>
+    <link rel="stylesheet" href="/Style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.8rem;
+        }
+        .stat-card {
+            background: var(--blanco);
+            border: 1px solid var(--borde);
+            border-radius: var(--radio-lg);
+            padding: 1.4rem;
+            box-shadow: var(--sombra);
+            text-align: center;
+        }
+        .stat-num {
+            font-family: 'DM Serif Display', serif;
+            font-size: 2.2rem;
+            color: var(--azul);
+            line-height: 1;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--texto-muted);
+            margin-top: 6px;
+        }
+        .stat-pct .stat-num { color: #16a34a; }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.2rem;
+            margin-bottom: 1.8rem;
+        }
+        .chart-card {
+            background: var(--blanco);
+            border: 1px solid var(--borde);
+            border-radius: var(--radio-lg);
+            padding: 1.4rem 1.6rem;
+            box-shadow: var(--sombra);
+        }
+        .chart-card h4 {
+            font-size: 0.92rem;
+            color: var(--texto-sub);
+            margin-bottom: 1rem;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+        }
+        @media (max-width: 768px) {
+            .charts-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="layout">
+
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-dot"></div>
+            <span class="brand-name">Gestión de<br>Eventos</span>
+        </div>
+        <div class="sidebar-user" th:if="${session.usuario != null}">
+            <div class="sidebar-user-avatar"
+                 th:text="${session.usuario != null and session.usuario.username != null ? session.usuario.username.substring(0,1).toUpperCase() : 'A'}">A</div>
+            <div class="sidebar-user-info">
+                <div class="sidebar-user-name" th:text="${session.usuario != null ? session.usuario.username : ''}">admin</div>
+                <span class="tag-rol" th:text="${session.usuario != null ? session.usuario.rol : ''}">Admin</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <th:block th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}">
+                <span class="sidebar-label">Administración</span>
+                <a href="/admin/usuarios" class="sidebar-link">
+                    <span class="icon">👥</span> Usuarios
+                </a>
+            </th:block>
+            <span class="sidebar-label">Panel</span>
+            <a href="/admin/eventos" class="sidebar-link activo">
+                <span class="icon">📅</span> Gestión Eventos
+            </a>
+            <a th:href="@{/admin/eventos/{id}/inscripciones(id=${evento.id})}"
+               class="sidebar-link" style="padding-left:2.4rem;font-size:.85rem">
+                <span class="icon">👥</span> Inscripciones
+            </a>
+            <a th:href="@{/admin/eventos/{id}/resumen(id=${evento.id})}"
+               class="sidebar-link activo" style="padding-left:2.4rem;font-size:.85rem">
+                <span class="icon">📊</span> Resumen
+            </a>
+            <span class="sidebar-label">Público</span>
+            <a href="/eventos" class="sidebar-link">
+                <span class="icon">🌐</span> Ver Eventos
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="/logout" class="sidebar-logout">
+                <span class="icon">→</span> Cerrar Sesión
+            </a>
+        </div>
+    </aside>
+
+    <main class="content">
+        <div class="page-header">
+            <div>
+                <h2 th:text="${evento.titulo}">Evento</h2>
+                <p th:text="${#temporals.format(evento.fechaHora,'dd MMM yyyy, HH:mm')} + ' · ' + ${evento.lugar}"></p>
+            </div>
+            <a th:href="@{/admin/eventos/{id}/inscripciones(id=${evento.id})}"
+               class="btn btn-ghost btn-sm" style="width:auto">← Inscripciones</a>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row" id="stats-row">
+            <div class="stat-card">
+                <div class="stat-num" id="stat-inscritos">—</div>
+                <div class="stat-label">Total Inscritos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" id="stat-cupo">—</div>
+                <div class="stat-label">Cupo Máximo</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-num" id="stat-asistentes">—</div>
+                <div class="stat-label">Asistentes</div>
+            </div>
+            <div class="stat-card stat-pct">
+                <div class="stat-num" id="stat-pct">—</div>
+                <div class="stat-label">% Asistencia</div>
+            </div>
+        </div>
+
+        <!-- Gráficas -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h4>📅 Inscripciones por Día</h4>
+                <canvas id="chart-inscripciones" height="220"></canvas>
+            </div>
+            <div class="chart-card">
+                <h4>🕐 Asistencia por Hora</h4>
+                <canvas id="chart-asistencia" height="220"></canvas>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script th:inline="javascript">
+    const eventoId = /*[[${evento.id}]]*/ 0;
+
+    const AZUL       = "rgba(37,99,235,0.85)";
+    const AZUL_BORDE = "rgba(37,99,235,1)";
+    const VERDE      = "rgba(22,163,74,0.85)";
+    const VERDE_BORDE= "rgba(22,163,74,1)";
+
+    const chartOpts = (labelColor) => ({
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1, color: "#94a3b8" }, grid: { color: "#f1f5f9" } },
+            x: { ticks: { color: "#94a3b8" }, grid: { display: false } }
+        }
+    });
+
+    async function cargarStats() {
+        const res  = await fetch(`/admin/eventos/${eventoId}/stats`);
+        const data = await res.json();
+
+        document.getElementById("stat-inscritos").textContent  = data.totalInscritos;
+        document.getElementById("stat-cupo").textContent       = data.cupoMaximo;
+        document.getElementById("stat-asistentes").textContent = data.totalAsistentes;
+        document.getElementById("stat-pct").textContent        = data.porcentaje + "%";
+
+        // Gráfico inscripciones por día
+        new Chart(document.getElementById("chart-inscripciones"), {
+            type: "bar",
+            data: {
+                labels: data.inscripcionesPorDia.map(d => d.fecha),
+                datasets: [{
+                    label: "Inscripciones",
+                    data: data.inscripcionesPorDia.map(d => d.total),
+                    backgroundColor: AZUL,
+                    borderColor: AZUL_BORDE,
+                    borderWidth: 1,
+                    borderRadius: 6
+                }]
+            },
+            options: chartOpts()
+        });
+
+        // Gráfico asistencia por hora
+        new Chart(document.getElementById("chart-asistencia"), {
+            type: "bar",
+            data: {
+                labels: data.asistenciaPorHora.map(h => h.hora + ":00"),
+                datasets: [{
+                    label: "Asistentes",
+                    data: data.asistenciaPorHora.map(h => h.total),
+                    backgroundColor: VERDE,
+                    borderColor: VERDE_BORDE,
+                    borderWidth: 1,
+                    borderRadius: 6
+                }]
+            },
+            options: chartOpts()
+        });
+    }
+
+    cargarStats();
+</script>
+</body>
+</html>

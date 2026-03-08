@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eventos — Admin</title>
+  <link rel="stylesheet" href="/Style.css">
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-dot"></div>
+      <span class="brand-name">Gestión de<br>Eventos</span>
+    </div>
+    <div class="sidebar-user">
+      <div class="sidebar-user-avatar"
+           th:text="${session.usuario != null and session.usuario.username != null ? session.usuario.username.substring(0,1).toUpperCase() : 'A'}">A</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name" th:text="${session.usuario != null ? session.usuario.username : ''}">admin</div>
+        <span class="tag-rol" th:text="${session.usuario != null ? session.usuario.rol : ''}">Admin</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <!-- Solo ADMIN ve gestión de usuarios -->
+      <span class="sidebar-label"
+            th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}">Administración</span>
+      <a href="/admin/usuarios" class="sidebar-link"
+         th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}">
+        <span class="icon">👥</span> Usuarios
+      </a>
+      <span class="sidebar-label">Panel</span>
+      <a href="/admin/eventos" class="sidebar-link activo">
+        <span class="icon">📅</span> Gestión Eventos
+      </a>
+      <span class="sidebar-label">Público</span>
+      <a href="/eventos" class="sidebar-link">
+        <span class="icon">🌐</span> Ver Eventos
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/logout" class="sidebar-logout">
+        <span class="icon">→</span> Cerrar Sesión
+      </a>
+    </div>
+  </aside>
+
+  <!-- Contenido -->
+  <main class="content">
+    <div class="page-header">
+      <div>
+        <h2>Eventos</h2>
+        <p>Crea y administra los eventos académicos</p>
+      </div>
+      <a href="/admin/eventos/nuevo" class="btn btn-primary btn-sm" style="width:auto">
+        + Nuevo Evento
+      </a>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+        <tr>
+          <th>#</th>
+          <th>Título</th>
+          <th>Fecha y Hora</th>
+          <th>Lugar</th>
+          <th>Cupo</th>
+          <th>Estado</th>
+          <th style="text-align:center">Acciones</th>
+        </tr>
+        </thead>
+        <tbody id="eventos-tbody">
+        <tr th:each="e : ${eventos}">
+          <td style="color:var(--texto-muted);font-size:.82rem" th:text="${e.id}"></td>
+          <td><strong th:text="${e.titulo}"></strong></td>
+          <td style="white-space:nowrap"
+              th:text="${#temporals.format(e.fechaHora,'dd/MM/yyyy HH:mm')}"></td>
+          <td th:text="${e.lugar}"></td>
+          <td th:text="${e.cupoMaximo}"></td>
+          <td>
+                            <span class="badge"
+                                  th:classappend="${e.estado.name()=='PUBLICADO'} ? 'badge-activo' : (${e.estado.name()=='CANCELADO'} ? 'badge-bloq' : (${e.estado.name()=='FINALIZADO'} ? 'badge-org' : 'badge-prot'))"
+                                  th:text="${e.estado}"
+                                  th:attr="id='estado-'+${e.id}">
+                            </span>
+          </td>
+          <td style="text-align:center">
+            <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+              <a th:href="@{'/admin/eventos/' + ${e.id} + '/editar'}"
+                 class="btn btn-sm btn-ghost" style="width:auto">Editar</a>
+              <button th:if="${e.estado.name() != 'PUBLICADO'}"
+                      class="btn btn-sm btn-success"
+                      th:attr="data-id=${e.id}"
+                      onclick="cambiarEstado(this, 'PUBLICADO')">Publicar</button>
+
+              <button th:if="${e.estado.name() == 'PUBLICADO'}"
+                      class="btn btn-sm btn-ghost"
+                      th:attr="data-id=${e.id}"
+                      onclick="cambiarEstado(this, 'BORRADOR')">Despublicar</button>
+
+              <button th:if="${e.estado.name() == 'PUBLICADO'}"
+                      class="btn btn-sm btn-ghost"
+                      th:attr="data-id=${e.id}"
+                      onclick="cambiarEstado(this, 'FINALIZADO')">Finalizar</button>
+
+              <button th:if="${e.estado.name() != 'CANCELADO'}"
+                      class="btn btn-sm btn-danger"
+                      th:attr="data-id=${e.id}"
+                      onclick="cambiarEstado(this, 'CANCELADO')">Cancelar</button>
+
+              <!-- Solo ADMIN puede eliminar eventos -->
+              <button th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}"
+                      class="btn btn-sm btn-danger"
+                      th:attr="data-id=${e.id}, data-titulo=${e.titulo}"
+                      onclick="eliminarEvento(this)"
+                      style="border-color:#991b1b;color:#991b1b">Eliminar</button>
+            </div>
+          </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(eventos)}">
+          <td colspan="7" style="text-align:center;padding:2rem;color:var(--texto-muted)">
+            No hay eventos aún. <a href="/admin/eventos/nuevo">Crear el primero</a>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Empty state — se muestra con JS cuando se eliminan todos los eventos -->
+    <div id="empty-state" style="display:none;text-align:center;padding:4rem 2rem;color:var(--texto-muted)">
+      <div style="font-size:2.8rem;margin-bottom:1rem">📭</div>
+      <p style="font-size:1rem;margin-bottom:1.2rem">No hay eventos todavía.</p>
+      <a href="/admin/eventos/nuevo" class="btn btn-primary" style="width:auto;padding:10px 28px">
+        + Crear el primero
+      </a>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  async function cambiarEstado(btn, nuevoEstado) {
+    const id = btn.dataset.id;
+    const res = await fetch(`/admin/eventos/${id}/estado`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ estado: nuevoEstado })
+    });
+    const data = await res.json();
+    if (!res.ok) { toast(data.error, "err"); return; }
+    toast(`Estado actualizado a ${data.estado}`);
+    setTimeout(() => location.reload(), 800);
+  }
+
+  async function eliminarEvento(btn) {
+    const id = btn.dataset.id;
+    const titulo = btn.dataset.titulo;
+    if (!confirm(`¿Eliminar permanentemente el evento "${titulo}"?\n\nEsta acción no se puede deshacer y eliminará todas las inscripciones asociadas.`)) return;
+
+    const res = await fetch(`/admin/eventos/${id}`, { method: "DELETE" });
+    const data = await res.json();
+    if (!res.ok) { toast(data.error || "No se pudo eliminar", "err"); return; }
+
+    toast("Evento eliminado");
+    const tr = btn.closest("tr");
+    setTimeout(() => {
+      tr.remove();
+      // Si no quedan filas de datos, mostrar empty state y ocultar tabla
+      const tbody = document.getElementById("eventos-tbody");
+      const filas = tbody.querySelectorAll("tr:not([data-empty])");
+      if (filas.length === 0) {
+        document.querySelector(".table-wrap").style.display = "none";
+        document.getElementById("empty-state").style.display = "block";
+      }
+    }, 600);
+  }
+
+  function toast(msg, tipo = "ok") {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className = `toast toast-${tipo} show`;
+    setTimeout(() => t.className = "toast", 2800);
+  }
+</script>
+</body>
+</html>

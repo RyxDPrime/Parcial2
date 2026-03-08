@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis Inscripciones</title>
+  <link rel="stylesheet" href="/Style.css">
+  <style>
+    .insc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.2rem;
+    }
+
+    .insc-card {
+      background: var(--blanco);
+      border: 1px solid var(--borde);
+      border-radius: var(--radio-lg);
+      overflow: hidden;
+      box-shadow: var(--sombra);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .insc-card-header {
+      padding: 1.1rem 1.4rem;
+      border-bottom: 1px solid var(--borde);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.8rem;
+    }
+
+    .insc-card-header h3 {
+      font-size: 1rem;
+      line-height: 1.3;
+    }
+
+    .insc-card-body {
+      padding: 1rem 1.4rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .meta-item {
+      font-size: 0.83rem;
+      color: var(--texto-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .qr-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 1rem 0 0.5rem;
+    }
+
+    .qr-wrap img {
+      width: 140px;
+      height: 140px;
+      border-radius: var(--radio);
+      border: 1px solid var(--borde);
+    }
+
+    .insc-card-footer {
+      padding: 1rem 1.4rem;
+      border-top: 1px solid var(--borde);
+      display: flex;
+      gap: 8px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--texto-muted);
+    }
+    .empty-state p { margin-top: 0.5rem; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- Sidebar participante -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-dot"></div>
+      <span class="brand-name">Gestión de<br>Eventos</span>
+    </div>
+    <div class="sidebar-user">
+      <div class="sidebar-user-avatar"
+           th:text="${usuario.username.substring(0,1).toUpperCase()}">U</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name" th:text="${usuario.username}">usuario</div>
+        <span class="tag-rol" th:text="${usuario.rol}">Participante</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <span class="sidebar-label">Explorar</span>
+      <a href="/eventos" class="sidebar-link">
+        <span class="icon">🌐</span> Eventos
+      </a>
+      <a href="/mis-inscripciones" class="sidebar-link activo">
+        <span class="icon">🎫</span> Mis Inscripciones
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="/logout" class="sidebar-logout">
+        <span class="icon">→</span> Cerrar Sesión
+      </a>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="page-header">
+      <div>
+        <h2>Mis Inscripciones</h2>
+        <p>Aquí están todos los eventos en los que te has inscrito</p>
+      </div>
+      <a href="/eventos" class="btn btn-primary btn-sm" style="width:auto">
+        + Buscar Eventos
+      </a>
+    </div>
+
+    <!-- Grid de inscripciones -->
+    <div class="insc-grid" th:if="${!#lists.isEmpty(inscripciones)}">
+      <div class="insc-card" th:each="i : ${inscripciones}">
+
+        <div class="insc-card-header">
+          <h3 th:text="${i.evento.titulo}"></h3>
+          <span class="badge"
+                th:classappend="${i.asistencia} ? 'badge-activo' : (${i.evento.estado.name() == 'CANCELADO'} ? 'badge-bloq' : (${i.evento.estado.name() == 'FINALIZADO'} ? 'badge-org' : 'badge-prot'))"
+                th:text="${i.asistencia} ? 'Asistió' : (${i.evento.estado.name() == 'PUBLICADO'} ? 'Inscrito' : (${i.evento.estado.name() == 'CANCELADO'} ? 'Cancelado' : (${i.evento.estado.name() == 'FINALIZADO'} ? 'Finalizado' : 'Pendiente')))">
+                    </span>
+        </div>
+
+        <div class="insc-card-body">
+          <div class="meta-item">
+            📅 <span th:text="${#temporals.format(i.evento.fechaHora, 'dd MMM yyyy, HH:mm')}"></span>
+          </div>
+          <div class="meta-item">
+            📍 <span th:text="${i.evento.lugar}"></span>
+          </div>
+
+          <!-- QR Code -->
+          <div class="qr-wrap" th:if="${i.evento.estado.name() != 'CANCELADO'}">
+            <img th:src="@{'/inscripciones/' + ${i.id} + '/qr'}"
+                 th:attr="data-id=${i.id}"
+                 alt="Código QR de entrada"
+                 title="Haz clic para ampliar"
+                 style="cursor:pointer"
+                 onclick="ampliarQR(this)">
+          </div>
+
+          <div th:if="${i.evento.estado.name() != 'CANCELADO'}"
+               style="display:flex;gap:8px;justify-content:center;margin-top:0.5rem">
+            <p style="font-size:0.75rem;color:var(--texto-muted);margin:0;align-self:center">
+              Toca para ampliar
+            </p>
+            <a th:href="@{'/inscripciones/' + ${i.id} + '/qr'}"
+               download="qr-entrada.png"
+               class="btn btn-sm btn-ghost"
+               style="width:auto;font-size:0.75rem;padding:4px 10px">
+              ⬇ Descargar
+            </a>
+          </div>
+        </div>
+
+        <div class="insc-card-footer">
+          <!-- Cancelar solo si el evento está publicado o es borrador -->
+          <button th:if="${i.evento.estado.name() == 'PUBLICADO' or i.evento.estado.name() == 'BORRADOR'}"
+                  class="btn btn-sm btn-danger"
+                  th:attr="data-id=${i.id}"
+                  onclick="cancelarInscripcion(this)"
+                  style="width:auto">
+            Cancelar inscripción
+          </button>
+          <span th:if="${i.evento.estado.name() == 'CANCELADO'}"
+                style="font-size:0.82rem;color:var(--texto-muted)">
+                        Evento cancelado por el organizador
+                    </span>
+          <span th:if="${i.evento.estado.name() == 'FINALIZADO'}"
+                style="font-size:0.82rem;color:var(--texto-muted)">
+                        Evento finalizado
+                    </span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Estado vacío -->
+    <div class="empty-state" th:if="${#lists.isEmpty(inscripciones)}">
+      <div style="font-size:2.5rem">🎫</div>
+      <p>Aún no te has inscrito en ningún evento.</p>
+      <a href="/eventos" class="btn btn-primary" style="display:inline-block;margin-top:1rem;width:auto;padding:10px 24px">
+        Ver eventos disponibles
+      </a>
+    </div>
+  </main>
+</div>
+
+<!-- Modal QR ampliado -->
+<div id="qr-modal" onclick="cerrarModal()"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9998;
+            align-items:center;justify-content:center;cursor:pointer">
+  <div style="background:#fff;border-radius:16px;padding:2rem;text-align:center;
+                box-shadow:0 20px 60px rgba(0,0,0,0.3);max-width:340px;width:90%">
+    <img id="qr-modal-img" src="" alt="QR"
+         style="width:260px;height:260px;display:block;margin:0 auto">
+    <p style="margin-top:1rem;font-size:0.82rem;color:#94a3b8">
+      Toca fuera para cerrar
+    </p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  function ampliarQR(img) {
+    const modal = document.getElementById("qr-modal");
+    document.getElementById("qr-modal-img").src = img.src;
+    modal.style.display = "flex";
+  }
+
+  function cerrarModal() {
+    document.getElementById("qr-modal").style.display = "none";
+  }
+
+  async function cancelarInscripcion(btn) {
+    if (!confirm("¿Seguro que deseas cancelar tu inscripción?")) return;
+    const id = btn.dataset.id;
+    const res = await fetch(`/inscripciones/${id}`, { method: "DELETE" });
+    const data = await res.json();
+    if (!res.ok) { toast(data.error, "err"); return; }
+    toast("Inscripción cancelada");
+    setTimeout(() => btn.closest(".insc-card").remove(), 900);
+  }
+
+  function toast(msg, tipo = "ok") {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className = `toast toast-${tipo} show`;
+    setTimeout(() => t.className = "toast", 3000);
+  }
+</script>
+</body>
+</html>

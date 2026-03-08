@@ -26,15 +26,26 @@ public class Evento {
     @Column(nullable = false)
     private int cupoMaximo;
 
-    // Constructor vacío requerido por Hibernate
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private EstadoEvento estado = EstadoEvento.BORRADOR;
+
+    // Organizador que creó el evento
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organizador_id", nullable = false)
+    private Usuario organizador;
+
     public Evento() {}
 
-    public Evento(String titulo, String descripcion, LocalDateTime fechaHora, String lugar, int cupoMaximo) {
+    public Evento(String titulo, String descripcion, LocalDateTime fechaHora,
+                  String lugar, int cupoMaximo, Usuario organizador) {
         this.titulo = titulo;
         this.descripcion = descripcion;
         this.fechaHora = fechaHora;
         this.lugar = lugar;
         this.cupoMaximo = cupoMaximo;
+        this.organizador = organizador;
+        this.estado = EstadoEvento.BORRADOR;
     }
 
     // Getters y Setters
@@ -56,8 +67,9 @@ public class Evento {
     public int getCupoMaximo() { return cupoMaximo; }
     public void setCupoMaximo(int cupoMaximo) { this.cupoMaximo = cupoMaximo; }
 
-    @Override
-    public String toString() {
-        return "Evento{id=" + id + ", titulo='" + titulo + "', lugar='" + lugar + "', fechaHora=" + fechaHora + "}";
-    }
+    public EstadoEvento getEstado() { return estado; }
+    public void setEstado(EstadoEvento estado) { this.estado = estado; }
+
+    public Usuario getOrganizador() { return organizador; }
+    public void setOrganizador(Usuario organizador) { this.organizador = organizador; }
 }
