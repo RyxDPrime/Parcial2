@@ -1,0 +1,16 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mi-app-java25
+    ports:
+      - "7070:7070"     # Acceso directo sin Nginx
+      - "8082:8082"
+    volumes:
+      - ./h2data:/app/data
+      - ./logs:/app/logs  # Si generas logs
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - JAVA_OPTS=-Xmx512m -Xms256m
+    restart: always

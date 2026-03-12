@@ -63,6 +63,7 @@
     }
     .scanner-tab:hover { border-color: var(--azul); color: var(--azul); }
     .scanner-tab.activo { background: var(--azul-suave); border-color: var(--azul); color: var(--azul); }
+    .scanner-tab:disabled { opacity: 0.5; cursor: not-allowed; }
     .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
     .badge-activo { background: #dcfce7; color: #166534; }
     .badge-prot   { background: #f3f4f6; color: #374151; }
@@ -85,11 +86,76 @@
     #zona-pegar .zona-icon { font-size: 2rem; margin-bottom: 0.4rem; }
     #zona-pegar p { font-size: 0.88rem; color: var(--texto-sub); margin: 0; }
 
+    /* Cámara */
+    .camara-container {
+      position: relative;
+      max-width: 420px;
+      margin: 0 auto;
+      background: #000;
+      border-radius: var(--radio);
+      overflow: hidden;
+    }
+    #camara-video {
+      width: 100%;
+      height: auto;
+      display: block;
+      min-height: 280px;
+    }
+    .camara-overlay {
+      position: absolute;
+      inset: 0;
+      border: 3px solid var(--azul);
+      border-radius: var(--radio);
+      pointer-events: none;
+      opacity: 0.6;
+      transition: all 0.3s;
+    }
+    .camara-overlay.detected {
+      border-color: #16a34a;
+      opacity: 1;
+      box-shadow: 0 0 20px rgba(22, 163, 74, 0.5);
+    }
+    .camara-hint {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      pointer-events: none;
+    }
+    .camara-detenida {
+      text-align: center;
+      padding: 3rem;
+      color: var(--texto-muted);
+    }
+
     .debug-info {
       font-size: 0.75rem;
       color: var(--texto-muted);
       margin-top: 0.5rem;
       font-family: monospace;
+      text-align: center;
+    }
+
+    /* Error de jsQR */
+    .jsqr-error {
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #dc2626;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+    .jsqr-error button {
+      margin-top: 0.5rem;
+      margin-right: 0.5rem;
+      padding: 0.4rem 0.8rem;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -162,9 +228,18 @@
     <div class="scanner-card" th:if="${evento.estado.name() != 'BORRADOR'}">
       <h3>📷 Registrar Asistencia</h3>
 
+      <!-- Error si jsQR no carga -->
+      <div id="jsqr-error-msg" class="jsqr-error" style="display:none">
+        <strong>⚠️ Error al cargar la librería QR</strong><br>
+        El escaneo de imágenes y cámara no estará disponible.<br>
+        <button onclick="location.reload()">🔄 Recargar</button>
+        <button onclick="intentarCargarJsQR()">🔄 Reintentar</button>
+      </div>
+
       <div style="display:flex; gap:6px; margin-bottom:1rem">
         <button class="scanner-tab activo" id="tab-texto"  onclick="setTab('texto')">✏️ Código</button>
-        <button class="scanner-tab"        id="tab-imagen" onclick="setTab('imagen')">🖼 Imagen QR</button>
+        <button class="scanner-tab"        id="tab-imagen" onclick="setTab('imagen')" disabled>🖼 Imagen</button>
+        <button class="scanner-tab"        id="tab-camara" onclick="setTab('camara')" disabled>📷 Cámara</button>
       </div>
 
       <!-- Modo texto -->
@@ -193,6 +268,22 @@
         </div>
         <canvas id="qr-canvas" style="display:none"></canvas>
         <div class="debug-info" id="imagen-debug"></div>
+      </div>
+
+      <!-- Modo cámara -->
+      <div id="modo-camara" style="display:none">
+        <div class="camara-container">
+          <video id="camara-video" autoplay playsinline muted></video>
+          <div class="camara-overlay" id="camara-overlay"></div>
+          <div class="camara-hint" id="camara-hint">Apunta al código QR</div>
+        </div>
+        <canvas id="camara-canvas" style="display:none"></canvas>
+        <div class="debug-info" id="camara-debug"></div>
+        <div style="text-align:center; margin-top:1rem">
+          <button class="btn btn-ghost btn-sm" onclick="detenerCamara(); setTab('texto')" style="width:auto">
+            ⏹ Detener cámara
+          </button>
+        </div>
       </div>
 
       <div class="scanner-result" id="scanner-result"></div>
@@ -234,45 +325,106 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- jsQR CDN -->
-<script src="/jsQR.js"></script>
-
+<!-- Cargar jsQR con múltiples fuentes -->
 <script>
-  // Verificar carga de jsQR
-  if (typeof jsQR === 'undefined') {
-    console.error('ERROR: jsQR no se cargó desde el CDN');
-    alert('Error al cargar la librería de escaneo QR. Recarga la página o verifica tu conexión.');
-  } else {
-    console.log('jsQR cargado correctamente');
+  const JSQR_SOURCES = [
+    'https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js',
+    'https://unpkg.com/jsqr@1.4.0/dist/jsQR.js',
+    'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'
+  ];
+
+  async function cargarScript(url) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = url;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load ' + url));
+      document.head.appendChild(script);
+    });
   }
 
-  // ── Estado ─────────────────────────────────────────────────
-  let ultimoCodigoProcesado = null;
+  async function intentarCargarJsQR() {
+    if (typeof jsQR !== 'undefined') {
+      console.log('jsQR ya estaba cargado');
+      habilitarTabs();
+      return;
+    }
+
+    for (const url of JSQR_SOURCES) {
+      try {
+        console.log('Intentando cargar jsQR desde:', url);
+        await cargarScript(url);
+        if (typeof jsQR !== 'undefined') {
+          console.log('✅ jsQR cargado desde:', url);
+          habilitarTabs();
+          document.getElementById('jsqr-error-msg').style.display = 'none';
+          return;
+        }
+      } catch (e) {
+        console.warn('❌ Falló:', url);
+      }
+    }
+
+    console.error('No se pudo cargar jsQR');
+    document.getElementById('jsqr-error-msg').style.display = 'block';
+  }
+
+  function habilitarTabs() {
+    document.getElementById('tab-imagen').disabled = false;
+    document.getElementById('tab-camara').disabled = false;
+  }
+
+  // Iniciar carga
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', intentarCargarJsQR);
+  } else {
+    intentarCargarJsQR();
+  }
+</script>
+
+<script>
+  // ── Estado global ──────────────────────────────────────────
+  let streamCamara = null;
+  let rafCamara = null;
+  let ultimoCodigo = null;
+  let procesando = false;
+  let frameCount = 0;
+  let tabActual = 'texto';
 
   // ── Tabs ───────────────────────────────────────────────────
   function setTab(tab) {
-    const modoTexto = document.getElementById("modo-texto");
-    const modoImagen = document.getElementById("modo-imagen");
-    const tabTexto = document.getElementById("tab-texto");
-    const tabImagen = document.getElementById("tab-imagen");
+    tabActual = tab;
 
-    if (tab === "texto") {
-      modoTexto.style.display = "block";
-      modoImagen.style.display = "none";
-      tabTexto.classList.add("activo");
-      tabImagen.classList.remove("activo");
-      document.getElementById("qr-input").focus();
-    } else {
-      modoTexto.style.display = "none";
-      modoImagen.style.display = "block";
-      tabTexto.classList.remove("activo");
-      tabImagen.classList.add("activo");
+    // Ocultar todos los modos
+    document.getElementById('modo-texto').style.display = 'none';
+    document.getElementById('modo-imagen').style.display = 'none';
+    document.getElementById('modo-camara').style.display = 'none';
+
+    // Quitar clase activo de todos los tabs
+    document.getElementById('tab-texto').classList.remove('activo');
+    document.getElementById('tab-imagen').classList.remove('activo');
+    document.getElementById('tab-camara').classList.remove('activo');
+
+    // Activar tab seleccionado
+    document.getElementById('tab-' + tab).classList.add('activo');
+
+    // Mostrar modo correspondiente
+    if (tab === 'texto') {
+      document.getElementById('modo-texto').style.display = 'block';
+      document.getElementById('qr-input').focus();
+      detenerCamara();
+    } else if (tab === 'imagen') {
+      document.getElementById('modo-imagen').style.display = 'block';
+      detenerCamara();
+    } else if (tab === 'camara') {
+      document.getElementById('modo-camara').style.display = 'block';
+      iniciarCamara();
     }
   }
 
   // ── Registrar asistencia ───────────────────────────────────
   async function registrarAsistencia(codigoQr) {
-    const inputEl = document.getElementById("qr-input");
+    const inputEl = document.getElementById('qr-input');
     const codigo = codigoQr || (inputEl ? inputEl.value.trim() : '');
 
     if (!codigo) {
@@ -280,84 +432,83 @@
       return;
     }
 
-    const resultDiv = document.getElementById("scanner-result");
-    resultDiv.style.display = "none";
+    const resultDiv = document.getElementById('scanner-result');
+    resultDiv.style.display = 'none';
 
     try {
-      const res = await fetch("/admin/asistencia", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/admin/asistencia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ codigoQr: codigo })
       });
 
       const data = await res.json();
-      resultDiv.style.display = "block";
+      resultDiv.style.display = 'block';
 
       if (!res.ok) {
-        resultDiv.className = "scanner-result err";
-        resultDiv.textContent = "❌ " + (data.error || "Error desconocido");
+        resultDiv.className = 'scanner-result err';
+        resultDiv.textContent = '❌ ' + (data.error || 'Error desconocido');
       } else if (data.ok) {
-        resultDiv.className = "scanner-result ok";
-        resultDiv.textContent = "✓ " + data.mensaje + " — " + data.participante;
+        resultDiv.className = 'scanner-result ok';
+        resultDiv.textContent = '✓ ' + data.mensaje + ' — ' + data.participante;
         actualizarBadge(codigo);
-        toast("Asistencia registrada: " + data.participante);
+        toast('Asistencia registrada: ' + data.participante);
       } else {
-        resultDiv.className = "scanner-result dup";
-        resultDiv.textContent = "⚠ " + data.mensaje + " — " + data.participante;
+        resultDiv.className = 'scanner-result dup';
+        resultDiv.textContent = '⚠ ' + data.mensaje + ' — ' + data.participante;
       }
     } catch (e) {
-      console.error("Error:", e);
-      resultDiv.style.display = "block";
-      resultDiv.className = "scanner-result err";
-      resultDiv.textContent = "❌ Error de conexión";
+      console.error('Error:', e);
+      resultDiv.style.display = 'block';
+      resultDiv.className = 'scanner-result err';
+      resultDiv.textContent = '❌ Error de conexión';
     }
 
-    if (inputEl) inputEl.value = "";
-    setTimeout(() => resultDiv.style.display = "none", 5000);
+    if (inputEl) inputEl.value = '';
+    setTimeout(() => resultDiv.style.display = 'none', 5000);
   }
 
-  // Actualizar badge en tabla
   function actualizarBadge(codigoQr) {
     try {
       const badge = document.querySelector(`span[data-qr="${CSS.escape(codigoQr)}"]`);
-      if (badge && !badge.classList.contains("badge-activo")) {
-        badge.textContent = "✓ Asistió";
-        badge.className = "badge badge-activo";
-        const stat = document.getElementById("stat-asistieron");
+      if (badge && !badge.classList.contains('badge-activo')) {
+        badge.textContent = '✓ Asistió';
+        badge.className = 'badge badge-activo';
+        const stat = document.getElementById('stat-asistieron');
         if (stat) {
-          stat.textContent = parseInt(stat.textContent || "0") + 1;
+          stat.textContent = parseInt(stat.textContent || '0') + 1;
         }
       }
     } catch (e) {
-      console.error("Error actualizando badge:", e);
+      console.error('Error actualizando badge:', e);
     }
   }
 
   // ── Modo imagen ────────────────────────────────────────────
   function leerArchivoQR(file) {
-    if (!file || !file.type.startsWith("image/")) {
-      toast("Selecciona una imagen válida", "err");
+    if (!file || !file.type.startsWith('image/')) {
+      toast('Selecciona una imagen válida', 'err');
       return;
     }
 
     if (typeof jsQR === 'undefined') {
-      toast("Error: Librería QR no cargada", "err");
+      toast('Error: Librería QR no cargada', 'err');
       return;
     }
 
-    console.log("Procesando:", file.name);
-    document.getElementById("imagen-debug").textContent = `Procesando: ${file.name}`;
+    console.log('Procesando archivo:', file.name);
+    document.getElementById('imagen-debug').textContent = `Procesando: ${file.name}`;
 
     const reader = new FileReader();
-    reader.onload = e => procesarImagen(e.target.result);
-    reader.onerror = () => toast("Error al leer la imagen", "err");
+    reader.onload = e => procesarImagen(e.target.result, 'imagen');
+    reader.onerror = () => toast('Error al leer la imagen', 'err');
     reader.readAsDataURL(file);
   }
 
   function onDrop(e) {
     e.preventDefault();
     e.stopPropagation();
-    document.getElementById("zona-pegar").classList.remove("drag-over");
+    document.getElementById('zona-pegar').classList.remove('drag-over');
 
     const files = e.dataTransfer.files;
     if (files.length > 0) {
@@ -365,16 +516,15 @@
     }
   }
 
-  // Pegar con Ctrl+V
-  document.addEventListener("paste", function(e) {
-    if (document.getElementById("modo-imagen").style.display === "none") return;
+  document.addEventListener('paste', function(e) {
+    if (document.getElementById('modo-imagen').style.display === 'none') return;
     if (typeof jsQR === 'undefined') return;
 
     const items = e.clipboardData?.items;
     if (!items) return;
 
-    for (let item of items) {
-      if (item.type.startsWith("image/")) {
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
         const file = item.getAsFile();
         if (file) {
           leerArchivoQR(file);
@@ -384,23 +534,23 @@
     }
   });
 
-  // Procesar imagen con jsQR
-  function procesarImagen(src) {
-    const zona = document.getElementById("zona-pegar");
-    const debugEl = document.getElementById("imagen-debug");
+  // ── Procesar imagen (compartido entre imagen y cámara) ─────
+  function procesarImagen(src, fuente) {
     const img = new Image();
-
-    img.crossOrigin = "anonymous";
+    img.crossOrigin = 'anonymous';
 
     img.onload = () => {
-      console.log("Imagen:", img.width, "x", img.height);
+      console.log(`Imagen cargada [${fuente}]:`, img.width, 'x', img.height);
 
-      const canvas = document.getElementById("qr-canvas");
-      const ctx = canvas.getContext("2d");
+      const canvas = fuente === 'imagen'
+              ? document.getElementById('qr-canvas')
+              : document.getElementById('camara-canvas');
+
+      const ctx = canvas.getContext('2d');
 
       // Redimensionar si es muy grande
       let w = img.width, h = img.height;
-      const max = 1000;
+      const max = fuente === 'imagen' ? 1000 : 640;
       if (w > max || h > max) {
         const ratio = Math.min(max/w, max/h);
         w = Math.floor(w * ratio);
@@ -410,7 +560,6 @@
       canvas.width = w;
       canvas.height = h;
 
-      // Fondo blanco y dibujar
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, w, h);
       ctx.drawImage(img, 0, 0, w, h);
@@ -418,70 +567,210 @@
       try {
         const imageData = ctx.getImageData(0, 0, w, h);
         const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: "attemptBoth"
+          inversionAttempts: 'attemptBoth'
         });
 
         if (code?.data) {
-          console.log("QR detectado:", code.data);
-          zona.style.borderColor = "#16a34a";
-          zona.innerHTML = `<div class="zona-icon">✅</div><p style="color:#16a34a">QR detectado</p>`;
-          debugEl.textContent = `Código: ${code.data.substring(0, 30)}${code.data.length > 30 ? '...' : ''}`;
+          console.log('QR detectado:', code.data);
 
-          // Evitar procesar el mismo código dos veces seguidas
-          if (code.data !== ultimoCodigoProcesado) {
-            ultimoCodigoProcesado = code.data;
-            registrarAsistencia(code.data);
-            setTimeout(() => { ultimoCodigoProcesado = null; }, 3000);
+          if (fuente === 'imagen') {
+            const zona = document.getElementById('zona-pegar');
+            zona.style.borderColor = '#16a34a';
+            zona.innerHTML = `<div class="zona-icon">✅</div><p style="color:#16a34a">QR detectado</p>`;
+            document.getElementById('imagen-debug').textContent = `Código: ${code.data.substring(0, 30)}...`;
+            setTimeout(resetZona, 3000);
+          } else if (fuente === 'camara') {
+            document.getElementById('camara-overlay').classList.add('detected');
+            document.getElementById('camara-hint').textContent = '¡QR detectado!';
+            document.getElementById('camara-debug').textContent = `Detectado: ${code.data.substring(0, 20)}...`;
+          }
+
+          // Evitar doble procesamiento del mismo código
+          if (code.data !== ultimoCodigo && !procesando) {
+            ultimoCodigo = code.data;
+            procesando = true;
+            registrarAsistencia(code.data).finally(() => {
+              setTimeout(() => {
+                procesando = false;
+                if (fuente === 'camara') {
+                  document.getElementById('camara-overlay').classList.remove('detected');
+                  document.getElementById('camara-hint').textContent = 'Apunta al código QR';
+                  document.getElementById('camara-debug').textContent = 'Buscando...';
+                }
+              }, 3000);
+            });
           }
         } else {
-          console.warn("No se detectó QR");
-          zona.style.borderColor = "#dc2626";
-          zona.innerHTML = `<div class="zona-icon">❌</div><p style="color:#dc2626">No se detectó QR.<br>Intenta con mejor iluminación o más cerca.</p>`;
-          debugEl.textContent = "No se encontró código QR en la imagen";
+          if (fuente === 'imagen') {
+            const zona = document.getElementById('zona-pegar');
+            zona.style.borderColor = '#dc2626';
+            zona.innerHTML = `<div class="zona-icon">❌</div><p style="color:#dc2626">No se detectó QR</p>`;
+            document.getElementById('imagen-debug').textContent = 'No se encontró código QR';
+            setTimeout(resetZona, 3000);
+          }
         }
       } catch (e) {
-        console.error("Error:", e);
-        zona.style.borderColor = "#dc2626";
-        zona.innerHTML = `<div class="zona-icon">❌</div><p style="color:#dc2626">Error al procesar</p>`;
+        console.error('Error procesando imagen:', e);
+        if (fuente === 'imagen') {
+          document.getElementById('imagen-debug').textContent = 'Error al procesar';
+        }
       }
-
-      setTimeout(resetZona, 4000);
     };
 
     img.onerror = () => {
-      zona.style.borderColor = "#dc2626";
-      zona.innerHTML = `<div class="zona-icon">❌</div><p style="color:#dc2626">Error al cargar imagen</p>`;
-      setTimeout(resetZona, 3000);
+      console.error('Error cargando imagen');
+      if (fuente === 'imagen') {
+        const zona = document.getElementById('zona-pegar');
+        zona.style.borderColor = '#dc2626';
+        zona.innerHTML = `<div class="zona-icon">❌</div><p style="color:#dc2626">Error al cargar</p>`;
+        setTimeout(resetZona, 3000);
+      }
     };
 
     img.src = src;
   }
 
   function resetZona() {
-    const zona = document.getElementById("zona-pegar");
-    zona.style.borderColor = "";
+    const zona = document.getElementById('zona-pegar');
+    zona.style.borderColor = '';
     zona.innerHTML = `
       <div class="zona-icon">🖼</div>
       <p><strong>Clic</strong> para subir · <strong>Ctrl+V</strong> para pegar · <strong>Arrastra</strong> la imagen del QR</p>
       <input id="file-input" type="file" accept="image/*" style="display:none" onchange="leerArchivoQR(this.files[0])">`;
-    document.getElementById("imagen-debug").textContent = "";
+    document.getElementById('imagen-debug').textContent = '';
+  }
+
+  // ── Modo cámara ────────────────────────────────────────────
+  async function iniciarCamara() {
+    if (typeof jsQR === 'undefined') {
+      toast('Error: jsQR no cargado', 'err');
+      setTab('texto');
+      return;
+    }
+
+    // Resetear estado
+    ultimoCodigo = null;
+    procesando = false;
+    frameCount = 0;
+
+    const debugEl = document.getElementById('camara-debug');
+    debugEl.textContent = 'Iniciando cámara...';
+
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Tu navegador no soporta cámara');
+      }
+
+      // Preferir cámara trasera en móviles
+      const constraints = {
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        }
+      };
+
+      streamCamara = await navigator.mediaDevices.getUserMedia(constraints);
+      const video = document.getElementById('camara-video');
+
+      video.srcObject = streamCamara;
+
+      video.onloadedmetadata = () => {
+        video.play();
+        debugEl.textContent = 'Cámara activa. Buscando QR...';
+        escanearConCamara();
+      };
+
+    } catch (err) {
+      console.error('Error cámara:', err);
+      debugEl.textContent = 'Error: ' + err.message;
+      toast('Error al acceder a la cámara: ' + err.message, 'err');
+      setTimeout(() => setTab('texto'), 2000);
+    }
+  }
+
+  function escanearConCamara() {
+    const video = document.getElementById('camara-video');
+    const canvas = document.getElementById('camara-canvas');
+
+    if (!streamCamara || !video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+      rafCamara = requestAnimationFrame(escanearConCamara);
+      return;
+    }
+
+    frameCount++;
+
+    // Procesar solo cada 10 frames (~6 veces/segundo) para no sobrecargar
+    if (frameCount % 10 === 0 && !procesando) {
+      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      }
+
+      // Crear imagen temporal del video para procesar
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = video.videoWidth;
+      tempCanvas.height = video.videoHeight;
+      const ctx = tempCanvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+
+      procesarImagen(tempCanvas.toDataURL(), 'camara');
+    }
+
+    rafCamara = requestAnimationFrame(escanearConCamara);
+  }
+
+  function detenerCamara() {
+    console.log('Deteniendo cámara...');
+
+    if (rafCamara) {
+      cancelAnimationFrame(rafCamara);
+      rafCamara = null;
+    }
+
+    if (streamCamara) {
+      streamCamara.getTracks().forEach(track => track.stop());
+      streamCamara = null;
+    }
+
+    const video = document.getElementById('camara-video');
+    if (video) video.srcObject = null;
+
+    const overlay = document.getElementById('camara-overlay');
+    if (overlay) overlay.classList.remove('detected');
+
+    const hint = document.getElementById('camara-hint');
+    if (hint) hint.textContent = 'Apunta al código QR';
+
+    const debug = document.getElementById('camara-debug');
+    if (debug) debug.textContent = '';
   }
 
   // ── Utils ───────────────────────────────────────────────────
   function toast(msg, tipo) {
-    const t = document.getElementById("toast");
+    const t = document.getElementById('toast');
     if (!t) return;
     t.textContent = msg;
     t.className = `toast toast-${tipo || 'ok'} show`;
-    setTimeout(() => t.className = "toast", 3000);
+    setTimeout(() => t.className = 'toast', 3000);
   }
 
   // Enter en input
-  document.getElementById("qr-input")?.addEventListener("keypress", e => {
-    if (e.key === "Enter") registrarAsistencia();
+  document.getElementById('qr-input')?.addEventListener('keypress', e => {
+    if (e.key === 'Enter') registrarAsistencia();
   });
 
-  console.log("Sistema de asistencia cargado");
+  // Limpiar al salir de la página
+  window.addEventListener('beforeunload', detenerCamara);
+
+  // Pausar cámara si cambia de pestaña
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && tabActual === 'camara') {
+      detenerCamara();
+    }
+  });
+
+  console.log('Sistema de escaneo cargado');
 </script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'application'
+    id 'com.gradleup.shadow' version '9.0.0'  // ← nuevo grupo + versión
 }
 
 group = 'edu.pucmm.eict'
@@ -40,6 +41,15 @@ dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+// Configuración del fat JAR
+shadowJar {
+    archiveBaseName.set('parcial2-eventos')
+    archiveClassifier.set('')
+    archiveVersion.set('')
+    // Necesario para Javalin + SLF4J
+    mergeServiceFiles()
 }
 
 test {
