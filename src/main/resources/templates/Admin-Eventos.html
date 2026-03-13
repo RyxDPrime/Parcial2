@@ -5,6 +5,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Eventos — Admin</title>
   <link rel="stylesheet" href="/Style.css">
+  <style>
+    /* ── Dropdown ── */
+    .dropdown { position: relative; display: inline-block; }
+    .dropdown-menu {
+      display: none;
+      position: fixed;
+      background: var(--blanco);
+      border: 1px solid var(--borde);
+      border-radius: var(--radio);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      min-width: 170px;
+      z-index: 9990;
+      overflow: hidden;
+    }
+    .dropdown-menu.open { display: block; }
+    .dropdown-item {
+      display: block; width: 100%; text-align: left;
+      padding: 9px 14px; font-size: 0.85rem;
+      color: var(--texto); background: none; border: none;
+      cursor: pointer; text-decoration: none;
+      transition: background .15s;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .dropdown-item:hover { background: var(--fondo); }
+    .dropdown-item-danger { color: #dc2626 !important; }
+    .dropdown-item-danger:hover { background: #fef2f2 !important; }
+    .dropdown-divider { height: 1px; background: var(--borde); margin: 4px 0; }
+
+    /* ── Diálogo de confirmación ── */
+    #dialogo-confirm {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 9999;
+      align-items: center; justify-content: center; padding: 1rem;
+    }
+    #dialogo-confirm.open { display: flex; }
+    #dialogo-confirm .dialogo-box {
+      background: var(--blanco); border-radius: var(--radio-lg);
+      padding: 2rem; max-width: 400px; width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      animation: slideIn .2s ease;
+    }
+    @keyframes slideIn { from { opacity:0; transform:translateY(-16px) } to { opacity:1; transform:none } }
+    #dialogo-confirm .dialogo-icon { font-size: 2.5rem; margin-bottom: .75rem; }
+    #dialogo-confirm h4 { font-size: 1.1rem; margin-bottom: .5rem; color: var(--texto); }
+    #dialogo-confirm p  { font-size: .88rem; color: var(--texto-sub); margin-bottom: 1.5rem; line-height: 1.5; }
+    #dialogo-confirm .dialogo-btns { display: flex; gap: 8px; justify-content: flex-end; }
+  </style>
 </head>
 <body>
 
@@ -32,11 +79,11 @@
          th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}">
         <span class="icon">👥</span> Usuarios
       </a>
-      <span class="sidebar-label">Panel</span>
+      <span class="sidebar-label">General</span>
       <a href="/admin/eventos" class="sidebar-link activo">
         <span class="icon">📅</span> Gestión Eventos
       </a>
-      <span class="sidebar-label">Público</span>
+      <span class="sidebar-label">Gestion</span>
       <a href="/eventos" class="sidebar-link">
         <span class="icon">🌐</span> Ver Eventos
       </a>
@@ -89,35 +136,51 @@
                             </span>
           </td>
           <td style="text-align:center">
-            <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
-              <a th:href="@{'/admin/eventos/' + ${e.id} + '/editar'}"
-                 class="btn btn-sm btn-ghost" style="width:auto">Editar</a>
+            <div style="display:flex;gap:6px;justify-content:center;align-items:center">
+
+              <!-- Botón principal: Publicar / Despublicar -->
               <button th:if="${e.estado.name() != 'PUBLICADO'}"
                       class="btn btn-sm btn-success"
                       th:attr="data-id=${e.id}"
-                      onclick="cambiarEstado(this, 'PUBLICADO')">Publicar</button>
+                      onclick="cambiarEstado(this, 'PUBLICADO')"
+                      style="width:auto">Publicar</button>
 
               <button th:if="${e.estado.name() == 'PUBLICADO'}"
                       class="btn btn-sm btn-ghost"
                       th:attr="data-id=${e.id}"
-                      onclick="cambiarEstado(this, 'BORRADOR')">Despublicar</button>
+                      onclick="cambiarEstado(this, 'BORRADOR')"
+                      style="width:auto">Despublicar</button>
 
-              <button th:if="${e.estado.name() == 'PUBLICADO'}"
-                      class="btn btn-sm btn-ghost"
-                      th:attr="data-id=${e.id}"
-                      onclick="cambiarEstado(this, 'FINALIZADO')">Finalizar</button>
+              <!-- Menú desplegable -->
+              <div class="dropdown" th:attr="id='dd-'+${e.id}">
+                <button class="btn btn-sm btn-ghost dropdown-toggle"
+                        style="width:auto;padding:6px 10px"
+                        th:attr="onclick='toggleDropdown(' + ${e.id} + ')'">···</button>
+                <div class="dropdown-menu" th:attr="id='dm-'+${e.id}">
+                  <a th:href="@{'/admin/eventos/' + ${e.id} + '/editar'}"
+                     class="dropdown-item">Editar</a>
+                  <div class="dropdown-divider"></div>
 
-              <button th:if="${e.estado.name() != 'CANCELADO'}"
-                      class="btn btn-sm btn-danger"
-                      th:attr="data-id=${e.id}"
-                      onclick="cambiarEstado(this, 'CANCELADO')">Cancelar</button>
+                  <button th:if="${e.estado.name() == 'PUBLICADO'}"
+                          class="dropdown-item"
+                          th:attr="data-id=${e.id}"
+                          onclick="cambiarEstado(this, 'FINALIZADO')">Finalizar</button>
 
-              <!-- Solo ADMIN puede eliminar eventos -->
-              <button th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}"
-                      class="btn btn-sm btn-danger"
-                      th:attr="data-id=${e.id}, data-titulo=${e.titulo}"
-                      onclick="eliminarEvento(this)"
-                      style="border-color:#991b1b;color:#991b1b">Eliminar</button>
+                  <button th:if="${e.estado.name() != 'CANCELADO'}"
+                          class="dropdown-item"
+                          th:attr="data-id=${e.id}"
+                          onclick="cambiarEstado(this, 'CANCELADO')">Cancelar</button>
+
+                  <!-- Solo ADMIN puede eliminar -->
+                  <th:block th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}">
+                    <div class="dropdown-divider"></div>
+                    <button class="dropdown-item dropdown-item-danger"
+                            th:attr="data-id=${e.id}, data-titulo=${e.titulo}"
+                            onclick="eliminarEvento(this)">Eliminar</button>
+                  </th:block>
+                </div>
+              </div>
+
             </div>
           </td>
         </tr>
@@ -144,9 +207,60 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Diálogo de confirmación para eliminar -->
+<div id="dialogo-confirm" onclick="cerrarDialogo()">
+  <div class="dialogo-box" onclick="event.stopPropagation()">
+    <div class="dialogo-icon">🗑️</div>
+    <h4>Eliminar evento</h4>
+    <p id="dialogo-msg">¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer y eliminará todas las inscripciones asociadas.</p>
+    <div class="dialogo-btns">
+      <button class="btn btn-ghost btn-sm" style="width:auto" onclick="cerrarDialogo()">Cancelar</button>
+      <button class="btn btn-sm" id="dialogo-confirmar"
+              style="width:auto;background:#dc2626;color:#fff;border-color:#dc2626">
+        Eliminar
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
+  // ── Dropdown (position:fixed para no cortarse por overflow) ──
+  function toggleDropdown(id) {
+    const menu   = document.getElementById("dm-" + id);
+    const toggle = menu.previousElementSibling; // el botón ···
+    const isOpen = menu.classList.contains("open");
+
+    // Cerrar todos
+    document.querySelectorAll(".dropdown-menu.open").forEach(m => m.classList.remove("open"));
+    if (isOpen) return;
+
+    // Posicionar con getBoundingClientRect para evitar corte por overflow
+    const rect = toggle.getBoundingClientRect();
+    menu.style.top  = (rect.bottom + window.scrollY + 4) + "px";
+    menu.style.left = (rect.right  + window.scrollX - menu.offsetWidth) + "px";
+    menu.classList.add("open");
+
+    // Ajustar left después de que el menú sea visible (para conocer su ancho real)
+    requestAnimationFrame(() => {
+      menu.style.left = (rect.right + window.scrollX - menu.offsetWidth) + "px";
+    });
+  }
+  // Cerrar al hacer clic fuera
+  document.addEventListener("click", e => {
+    if (!e.target.closest(".dropdown")) {
+      document.querySelectorAll(".dropdown-menu.open").forEach(m => m.classList.remove("open"));
+    }
+  });
+  // Reposicionar al hacer scroll
+  window.addEventListener("scroll", () => {
+    document.querySelectorAll(".dropdown-menu.open").forEach(m => m.classList.remove("open"));
+  }, true);
+
+  // ── Cambiar estado ────────────────────────────────────────
   async function cambiarEstado(btn, nuevoEstado) {
     const id = btn.dataset.id;
+    // Cerrar dropdown
+    document.querySelectorAll(".dropdown-menu.open").forEach(m => m.classList.remove("open"));
     const res = await fetch(`/admin/eventos/${id}/estado`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -158,29 +272,42 @@
     setTimeout(() => location.reload(), 800);
   }
 
-  async function eliminarEvento(btn) {
-    const id = btn.dataset.id;
-    const titulo = btn.dataset.titulo;
-    if (!confirm(`¿Eliminar permanentemente el evento "${titulo}"?\n\nEsta acción no se puede deshacer y eliminará todas las inscripciones asociadas.`)) return;
+  // ── Eliminar con diálogo ──────────────────────────────────
+  let _eliminarId  = null;
+  let _eliminarRow = null;
 
-    const res = await fetch(`/admin/eventos/${id}`, { method: "DELETE" });
+  function eliminarEvento(btn) {
+    _eliminarId  = btn.dataset.id;
+    _eliminarRow = btn.closest("tr");
+    document.getElementById("dialogo-msg").textContent =
+            `¿Eliminar permanentemente "${btn.dataset.titulo}"? Esta acción no se puede deshacer y eliminará todas las inscripciones asociadas.`;
+    document.getElementById("dialogo-confirm").classList.add("open");
+    // Cerrar dropdown
+    document.querySelectorAll(".dropdown-menu.open").forEach(m => m.classList.remove("open"));
+  }
+
+  document.getElementById("dialogo-confirmar").addEventListener("click", async () => {
+    cerrarDialogo();
+    const res  = await fetch(`/admin/eventos/${_eliminarId}`, { method: "DELETE" });
     const data = await res.json();
     if (!res.ok) { toast(data.error || "No se pudo eliminar", "err"); return; }
-
     toast("Evento eliminado");
-    const tr = btn.closest("tr");
     setTimeout(() => {
-      tr.remove();
-      // Si no quedan filas de datos, mostrar empty state y ocultar tabla
+      _eliminarRow.remove();
       const tbody = document.getElementById("eventos-tbody");
-      const filas = tbody.querySelectorAll("tr:not([data-empty])");
-      if (filas.length === 0) {
+      if (tbody.querySelectorAll("tr").length === 0) {
         document.querySelector(".table-wrap").style.display = "none";
         document.getElementById("empty-state").style.display = "block";
       }
     }, 600);
-  }
+  });
 
+  function cerrarDialogo() {
+    document.getElementById("dialogo-confirm").classList.remove("open");
+  }
+  document.addEventListener("keydown", e => { if (e.key === "Escape") cerrarDialogo(); });
+
+  // ── Toast ─────────────────────────────────────────────────
   function toast(msg, tipo = "ok") {
     const t = document.getElementById("toast");
     t.textContent = msg;
