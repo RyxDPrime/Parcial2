@@ -165,7 +165,7 @@
                                     class="btn btn-sm btn-ghost"
                                     th:attr="data-id=${e.id}"
                                     onclick="cambiarEstado(this, 'BORRADOR')"
-                                    style="width:auto">📝 Despublicar</button>
+                                    style="width:auto">Ocultar</button>
 
                             <!-- FIX: Dropdown solo si NO es FINALIZADO -->
                             <div class="dropdown" th:attr="id='dd-'+${e.id}"
@@ -178,19 +178,19 @@
                                     <!-- FIX: Editar solo si es BORRADOR o POSPUESTO -->
                                     <a th:if="${e.estado.name() == 'BORRADOR' or e.estado.name() == 'POSPUESTO'}"
                                        th:href="@{'/admin/eventos/' + ${e.id} + '/editar'}"
-                                       class="dropdown-item">✏️ Editar</a>
+                                       class="dropdown-item">Editar</a>
 
                                     <!-- FIX: Editar bloqueado si es PUBLICADO -->
                                     <span th:if="${e.estado.name() == 'PUBLICADO' or e.estado.name() == 'Finalizado'}"
                                           class="dropdown-item"
                                           style="opacity:0.45;cursor:not-allowed"
                                           title="Despublica el evento para poder editarlo">
-                                            ✏️ Editar (bloqueado)
+                                            Editar (bloqueado)
                                     </span>
 
                                     <!-- FIX: Resumen disponible para todos excepto FINALIZADO (manejado arriba) -->
                                     <a th:href="@{/admin/eventos/{id}/resumen(id=${e.id})}"
-                                       class="dropdown-item">📊 Resumen</a>
+                                       class="dropdown-item">Resumen</a>
 
                                     <div class="dropdown-divider"></div>
 
@@ -198,30 +198,30 @@
                                     <button th:if="${e.estado.name() != 'PUBLICADO' and e.estado.name() != 'CANCELADO'}"
                                             class="dropdown-item"
                                             th:attr="data-id=${e.id}"
-                                            onclick="cambiarEstado(this, 'PUBLICADO')">✅ Publicar</button>
+                                            onclick="cambiarEstado(this, 'PUBLICADO')">Publicar</button>
 
                                     <!-- FIX: Despublicar solo si es PUBLICADO -->
                                     <button th:if="${e.estado.name() == 'PUBLICADO'}"
                                             class="dropdown-item"
                                             th:attr="data-id=${e.id}"
-                                            onclick="cambiarEstado(this, 'BORRADOR')">📝 Despublicar</button>
+                                            onclick="cambiarEstado(this, 'BORRADOR')">Ocultar</button>
 
                                     <!-- FIX: Finalizar solo si es PUBLICADO -->
                                     <button th:if="${e.estado.name() == 'PUBLICADO'}"
                                             class="dropdown-item"
                                             th:attr="data-id=${e.id}"
-                                            onclick="cambiarEstado(this, 'FINALIZADO')">🏁 Finalizar</button>
+                                            onclick="cambiarEstado(this, 'FINALIZADO')">Finalizar</button>
 
                                     <!-- FIX: Cancelar solo si no es CANCELADO (y no es FINALIZADO por el th:if del dropdown) -->
                                     <button th:if="${e.estado.name() != 'CANCELADO'}"
                                             class="dropdown-item"
                                             th:attr="data-id=${e.id}"
-                                            onclick="cambiarEstado(this, 'CANCELADO')">🚫 Cancelar</button>
+                                            onclick="cambiarEstado(this, 'CANCELADO')">Cancelar</button>
 
                                     <!-- FIX: Posponer solo si no es FINALIZADO ni CANCELADO (FINALIZADO ya filtrado) -->
                                     <a th:if="${e.estado.name() != 'CANCELADO'}"
                                        th:href="@{/admin/eventos/{id}/posponer(id=${e.id})}"
-                                       class="dropdown-item">📅 Posponer</a>
+                                       class="dropdown-item">Posponer</a>
 
                                     <!-- Solo ADMIN puede eliminar -->
                                     <th:block th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}">
@@ -230,12 +230,12 @@
                                         <button th:if="${e.estado.name() != 'CANCELADO'}"
                                                 class="dropdown-item dropdown-item-danger"
                                                 th:attr="data-id=${e.id}, data-titulo=${e.titulo}"
-                                                onclick="eliminarEvento(this)">🗑 Eliminar</button>
+                                                onclick="eliminarEvento(this)">Eliminar</button>
                                         <span th:if="${e.estado.name() == 'CANCELADO'}"
                                               class="dropdown-item"
                                               style="opacity:0.45;cursor:not-allowed"
                                               title="Los eventos cancelados no pueden eliminarse">
-                                                🗑 Eliminar (bloqueado)
+                                                Eliminar (bloqueado)
                                         </span>
                                     </th:block>
                                 </div>
@@ -246,10 +246,10 @@
                                  th:if="${e.estado.name() == 'FINALIZADO'}">
                                 <button class="btn btn-sm btn-ghost dropdown-toggle"
                                         style="width:auto;padding:6px 10px"
-                                        th:attr="onclick='toggleDropdown(' + ${e.id} + ')'">👁 Ver</button>
+                                        th:attr="onclick='toggleDropdown(' + ${e.id} + ')'">Ver</button>
                                 <div class="dropdown-menu" th:attr="id='dm-'+${e.id}">
                                     <a th:href="@{/admin/eventos/{id}/resumen(id=${e.id})}"
-                                       class="dropdown-item">📊 Ver Resumen</a>
+                                       class="dropdown-item">Ver Resumen</a>
                                     <div class="dropdown-divider"></div>
                                     <span class="dropdown-item" style="opacity:0.6;cursor:not-allowed; font-size:0.8rem;">
                                         🔒 Evento archivado<br>
@@ -272,7 +272,7 @@
 
         <!-- Empty state — se muestra con JS cuando se eliminan todos los eventos -->
         <div id="empty-state" style="display:none;text-align:center;padding:4rem 2rem;color:var(--texto-muted)">
-            <div style="font-size:2.8rem;margin-bottom:1rem">📭</div>
+            <div style="font-size:2.8rem;margin-bottom:1rem"></div>
             <p style="font-size:1rem;margin-bottom:1.2rem">No hay eventos todavía.</p>
             <a href="/admin/eventos/nuevo" class="btn btn-primary" style="width:auto;padding:10px 28px">
                 + Crear el primero
@@ -287,7 +287,6 @@
 <!-- Diálogo de confirmación para eliminar -->
 <div id="dialogo-confirm" onclick="cerrarDialogo()">
     <div class="dialogo-box" onclick="event.stopPropagation()">
-        <div class="dialogo-icon">🗑️</div>
         <h4>Eliminar evento</h4>
         <p id="dialogo-msg">¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer y eliminará todas las inscripciones asociadas.</p>
         <div class="dialogo-btns">

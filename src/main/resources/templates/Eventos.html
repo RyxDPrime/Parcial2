@@ -386,10 +386,6 @@
                            class="btn btn-ghost">
                             📊 Resumen
                         </a>
-                        <a th:href="@{/admin/eventos/{id}/editar(id=${e.id})}"
-                           class="btn btn-ghost btn-icon" title="Editar">
-                            ✏️
-                        </a>
                     </div>
                 </div>
 
@@ -452,7 +448,7 @@
             }
 
             // Actualizar botón
-            btn.textContent = "✓ Ya inscrito";
+            btn.textContent = "Ya inscrito";
             btn.disabled = true;
             btn.classList.remove("btn-primary");
             btn.classList.add("btn-ghost");

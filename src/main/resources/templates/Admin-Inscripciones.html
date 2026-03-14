@@ -200,69 +200,6 @@
             <a href="/admin/eventos" class="btn btn-ghost btn-sm" style="width:auto">← Volver</a>
         </div>
 
-        <!-- ── Tarjeta resumen del evento ── -->
-        <div class="evento-resumen-card">
-            <div class="evento-card-header">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                    <h3 th:text="${evento.titulo}">Nombre del Evento</h3>
-                    <span class="badge-estado" th:text="${evento.estado}">PUBLICADO</span>
-                </div>
-                <div class="evento-meta-header">
-                    <span>📅 <span th:text="${#temporals.format(evento.fechaHora,'dd MMM yyyy, HH:mm')}"></span></span>
-                    <span>📍 <span th:text="${evento.lugar}"></span></span>
-                </div>
-            </div>
-
-            <div class="evento-card-body">
-                <p class="evento-desc" th:text="${evento.descripcion}"></p>
-
-                <!-- Stats en fila -->
-                <div class="stats-inline">
-                    <div class="stat-item">
-                        <div class="stat-num" th:text="${totalInscritos}">0</div>
-                        <div class="stat-lbl">Inscritos</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-num verde" id="stat-asistieron" th:text="${asistieron}">0</div>
-                        <div class="stat-lbl">Asistieron</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-num neutro" th:text="${evento.cupoMaximo}">0</div>
-                        <div class="stat-lbl">Cupo total</div>
-                    </div>
-                </div>
-
-                <!-- Barra de ocupación -->
-                <div th:with="pct=${evento.cupoMaximo > 0 ? (totalInscritos * 100 / evento.cupoMaximo) : 0}">
-                    <div class="ocupacion-label">
-                        <span>Ocupación</span>
-                        <span th:text="${pct} + '%'">0%</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill"
-                             th:style="'width:' + ${pct} + '%; background:' + (${pct >= 90} ? '#dc2626' : (${pct >= 60} ? '#f59e0b' : '#2563eb'))">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Botones de acción -->
-                <div class="acciones-rapidas">
-                    <a th:href="@{/admin/eventos/{id}/inscripciones(id=${evento.id})}"
-                       class="btn btn-primary">
-                        👥 Control Asistencia
-                    </a>
-                    <a th:href="@{/admin/eventos/{id}/resumen(id=${evento.id})}"
-                       class="btn btn-ghost">
-                        📊 Ver Estadísticas
-                    </a>
-                    <a th:href="@{/admin/eventos/{id}/editar(id=${evento.id})}"
-                       class="btn btn-ghost btn-icon" title="Editar evento">
-                        ✏️
-                    </a>
-                </div>
-            </div>
-        </div>
-
         <!-- Campo oculto con el ID del evento para validar QR -->
         <input type="hidden" id="evento-id-hidden" th:value="${evento.id}">
 
@@ -532,7 +469,6 @@
             });
 
             if (code?.data) {
-                detenerCamara();
                 registrarAsistencia(code.data);
                 return;
             }
