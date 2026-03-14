@@ -5,15 +5,13 @@
 <hibernate-configuration>
     <session-factory>
         <property name="hibernate.connection.driver_class">org.h2.Driver</property>
-        <!-- Default URL works in Docker and can be overridden via DB_URL env var in HibernateUtil -->
-        <property name="hibernate.connection.url">jdbc:h2:file:/app/data/eventos_db</property>
+        <property name="connection.url">jdbc:h2:file:/app/data/eventos_db;AUTO_SERVER=TRUE</property>
         <property name="hibernate.connection.username">sa</property>
         <property name="hibernate.connection.password"></property>
 
         <property name="hibernate.dialect">org.hibernate.dialect.H2Dialect</property>
 
-        <!-- update: preserva datos entre reinicios -->
-        <property name="hibernate.hbm2ddl.auto">update</property>
+        <property name="hibernate.hbm2ddl.auto">create-drop</property>
 
         <property name="hibernate.show_sql">true</property>
         <property name="hibernate.format_sql">true</property>
