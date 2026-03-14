@@ -52,6 +52,14 @@
         #dialogo-confirm p  { font-size: .88rem; color: var(--texto-sub); margin-bottom: 1.5rem; line-height: 1.5; }
         #dialogo-confirm .dialogo-btns { display: flex; gap: 8px; justify-content: flex-end; }
 
+        /* FIX: Estilo para evento finalizado (solo lectura) */
+        .evento-finalizado {
+            background: var(--fondo) !important;
+        }
+        .badge-archivado {
+            background: #6b7280 !important;
+            color: white !important;
+        }
     </style>
 </head>
 <body>
@@ -80,11 +88,11 @@
                th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}">
                 <span class="icon">👥</span> Usuarios
             </a>
-            <span class="sidebar-label">Panel</span>
+            <span class="sidebar-label">General</span>
             <a href="/admin/eventos" class="sidebar-link activo">
                 <span class="icon">📅</span> Gestión Eventos
             </a>
-            <span class="sidebar-label">Público</span>
+            <span class="sidebar-label">Gestion</span>
             <a href="/eventos" class="sidebar-link">
                 <span class="icon">🌐</span> Ver Eventos
             </a>
@@ -122,7 +130,7 @@
                 </tr>
                 </thead>
                 <tbody id="eventos-tbody">
-                <tr th:each="e : ${eventos}">
+                <tr th:each="e : ${eventos}" th:classappend="${e.estado.name() == 'FINALIZADO'} ? 'evento-finalizado'">
                     <td style="color:var(--texto-muted);font-size:.82rem" th:text="${e.id}"></td>
                     <td><strong th:text="${e.titulo}"></strong></td>
                     <td style="white-space:nowrap"
@@ -131,7 +139,7 @@
                     <td th:text="${e.cupoMaximo}"></td>
                     <td>
                             <span class="badge"
-                                  th:classappend="${e.estado.name()=='PUBLICADO'} ? 'badge-activo' : (${e.estado.name()=='CANCELADO'} ? 'badge-bloq' : (${e.estado.name()=='FINALIZADO'} ? 'badge-org' : (${e.estado.name()=='POSPUESTO'} ? 'badge-warn' : 'badge-prot')))"
+                                  th:classappend="${e.estado.name()=='PUBLICADO'} ? 'badge-activo' : (${e.estado.name()=='CANCELADO'} ? 'badge-bloq' : (${e.estado.name()=='FINALIZADO'} ? 'badge-archivado' : (${e.estado.name()=='POSPUESTO'} ? 'badge-warn' : 'badge-prot')))"
                                   th:text="${e.estado}"
                                   th:attr="id='estado-'+${e.id}">
                             </span>
@@ -139,84 +147,114 @@
                     <td style="text-align:center">
                         <div style="display:flex;gap:6px;justify-content:center;align-items:center">
 
-                            <!-- Botón principal: Publicar / Despublicar -->
-                            <button th:if="${e.estado.name() != 'PUBLICADO' and e.estado.name() != 'FINALIZADO'}"
+                            <!-- FIX: Solo mostrar botón Publicar si NO es PUBLICADO, FINALIZADO ni CANCELADO -->
+                            <button th:if="${e.estado.name() != 'PUBLICADO' and e.estado.name() != 'FINALIZADO' and e.estado.name() != 'CANCELADO'}"
                                     class="btn btn-sm btn-success"
                                     th:attr="data-id=${e.id}"
                                     onclick="cambiarEstado(this, 'PUBLICADO')"
                                     style="width:auto">✅ Publicar</button>
 
-                            <!-- FINALIZADO — ninguna acción disponible -->
+                            <!-- FIX: Mostrar etiqueta Finalizado sin acciones disponibles -->
                             <span th:if="${e.estado.name() == 'FINALIZADO'}"
-                                  style="font-size:0.78rem;color:var(--texto-muted);padding:4px 8px">
-                                    Finalizado
-                                </span>
+                                  style="font-size:0.78rem;color:var(--texto-muted);padding:4px 8px; background:#f3f4f6; border-radius:4px;">
+                                🔒 Archivado
+                            </span>
 
+                            <!-- FIX: Solo mostrar Despublicar si es PUBLICADO (no aplica a FINALIZADO) -->
                             <button th:if="${e.estado.name() == 'PUBLICADO'}"
                                     class="btn btn-sm btn-ghost"
                                     th:attr="data-id=${e.id}"
                                     onclick="cambiarEstado(this, 'BORRADOR')"
                                     style="width:auto">📝 Despublicar</button>
 
-                            <!-- Menú desplegable -->
-                            <div class="dropdown" th:attr="id='dd-'+${e.id}">
+                            <!-- FIX: Dropdown solo si NO es FINALIZADO -->
+                            <div class="dropdown" th:attr="id='dd-'+${e.id}"
+                                 th:if="${e.estado.name() != 'FINALIZADO'}">
                                 <button class="btn btn-sm btn-ghost dropdown-toggle"
                                         style="width:auto;padding:6px 10px"
                                         th:attr="onclick='toggleDropdown(' + ${e.id} + ')'">···</button>
                                 <div class="dropdown-menu" th:attr="id='dm-'+${e.id}">
-                                    <a th:if="${e.estado.name() != 'PUBLICADO'}"
+
+                                    <!-- FIX: Editar solo si es BORRADOR o POSPUESTO -->
+                                    <a th:if="${e.estado.name() == 'BORRADOR' or e.estado.name() == 'POSPUESTO'}"
                                        th:href="@{'/admin/eventos/' + ${e.id} + '/editar'}"
                                        class="dropdown-item">✏️ Editar</a>
+
+                                    <!-- FIX: Editar bloqueado si es PUBLICADO -->
                                     <span th:if="${e.estado.name() == 'PUBLICADO'}"
                                           class="dropdown-item"
                                           style="opacity:0.45;cursor:not-allowed"
                                           title="Despublica el evento para poder editarlo">
                                             ✏️ Editar (bloqueado)
-                                        </span>
+                                    </span>
+
+                                    <!-- FIX: Resumen disponible para todos excepto FINALIZADO (manejado arriba) -->
                                     <a th:href="@{/admin/eventos/{id}/resumen(id=${e.id})}"
                                        class="dropdown-item">📊 Resumen</a>
+
                                     <div class="dropdown-divider"></div>
 
-                                    <button th:if="${e.estado.name() != 'PUBLICADO'}"
+                                    <!-- FIX: Publicar solo si no es PUBLICADO ni CANCELADO -->
+                                    <button th:if="${e.estado.name() != 'PUBLICADO' and e.estado.name() != 'CANCELADO'}"
                                             class="dropdown-item"
                                             th:attr="data-id=${e.id}"
                                             onclick="cambiarEstado(this, 'PUBLICADO')">✅ Publicar</button>
 
+                                    <!-- FIX: Despublicar solo si es PUBLICADO -->
                                     <button th:if="${e.estado.name() == 'PUBLICADO'}"
                                             class="dropdown-item"
                                             th:attr="data-id=${e.id}"
                                             onclick="cambiarEstado(this, 'BORRADOR')">📝 Despublicar</button>
 
+                                    <!-- FIX: Finalizar solo si es PUBLICADO -->
                                     <button th:if="${e.estado.name() == 'PUBLICADO'}"
                                             class="dropdown-item"
                                             th:attr="data-id=${e.id}"
                                             onclick="cambiarEstado(this, 'FINALIZADO')">🏁 Finalizar</button>
 
+                                    <!-- FIX: Cancelar solo si no es CANCELADO (y no es FINALIZADO por el th:if del dropdown) -->
                                     <button th:if="${e.estado.name() != 'CANCELADO'}"
                                             class="dropdown-item"
                                             th:attr="data-id=${e.id}"
                                             onclick="cambiarEstado(this, 'CANCELADO')">🚫 Cancelar</button>
 
-                                    <!-- Posponer — solo si no está FINALIZADO ni CANCELADO -->
-                                    <a th:if="${e.estado.name() != 'FINALIZADO' and e.estado.name() != 'CANCELADO'}"
+                                    <!-- FIX: Posponer solo si no es FINALIZADO ni CANCELADO (FINALIZADO ya filtrado) -->
+                                    <a th:if="${e.estado.name() != 'CANCELADO'}"
                                        th:href="@{/admin/eventos/{id}/posponer(id=${e.id})}"
                                        class="dropdown-item">📅 Posponer</a>
 
                                     <!-- Solo ADMIN puede eliminar -->
                                     <th:block th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}">
                                         <div class="dropdown-divider"></div>
-                                        <!-- FIX: no se puede eliminar si está FINALIZADO -->
-                                        <button th:if="${e.estado.name() != 'FINALIZADO'}"
+                                        <!-- FIX: Eliminar solo si no es FINALIZADO (ya filtrado arriba) ni CANCELADO -->
+                                        <button th:if="${e.estado.name() != 'CANCELADO'}"
                                                 class="dropdown-item dropdown-item-danger"
                                                 th:attr="data-id=${e.id}, data-titulo=${e.titulo}"
                                                 onclick="eliminarEvento(this)">🗑 Eliminar</button>
-                                        <span th:if="${e.estado.name() == 'FINALIZADO'}"
+                                        <span th:if="${e.estado.name() == 'CANCELADO'}"
                                               class="dropdown-item"
                                               style="opacity:0.45;cursor:not-allowed"
-                                              title="Los eventos finalizados no pueden eliminarse">
+                                              title="Los eventos cancelados no pueden eliminarse">
                                                 🗑 Eliminar (bloqueado)
-                                            </span>
+                                        </span>
                                     </th:block>
+                                </div>
+                            </div>
+
+                            <!-- FIX: Dropdown especial para FINALIZADO (solo ver resumen) -->
+                            <div class="dropdown" th:attr="id='dd-'+${e.id}"
+                                 th:if="${e.estado.name() == 'FINALIZADO'}">
+                                <button class="btn btn-sm btn-ghost dropdown-toggle"
+                                        style="width:auto;padding:6px 10px"
+                                        th:attr="onclick='toggleDropdown(' + ${e.id} + ')'">👁 Ver</button>
+                                <div class="dropdown-menu" th:attr="id='dm-'+${e.id}">
+                                    <a th:href="@{/admin/eventos/{id}/resumen(id=${e.id})}"
+                                       class="dropdown-item">📊 Ver Resumen</a>
+                                    <div class="dropdown-divider"></div>
+                                    <span class="dropdown-item" style="opacity:0.6;cursor:not-allowed; font-size:0.8rem;">
+                                        🔒 Evento archivado<br>
+                                        <small>No se pueden realizar cambios</small>
+                                    </span>
                                 </div>
                             </div>
 
@@ -300,6 +338,14 @@
         const id = btn.dataset.id;
         // Cerrar dropdown
         document.querySelectorAll(".dropdown-menu.open").forEach(m => m.classList.remove("open"));
+
+        // FIX: Validación adicional en frontend para prevenir cambios en finalizados
+        const fila = btn.closest('tr');
+        if (fila && fila.classList.contains('evento-finalizado')) {
+            toast("No se pueden modificar eventos finalizados", "err");
+            return;
+        }
+
         const res = await fetch(`/admin/eventos/${id}/estado`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -318,6 +364,13 @@
     function eliminarEvento(btn) {
         _eliminarId  = btn.dataset.id;
         _eliminarRow = btn.closest("tr");
+
+        // FIX: Validación adicional para prevenir eliminar finalizados
+        if (_eliminarRow && _eliminarRow.classList.contains('evento-finalizado')) {
+            toast("No se pueden eliminar eventos finalizados", "err");
+            return;
+        }
+
         document.getElementById("dialogo-msg").textContent =
             `¿Eliminar permanentemente "${btn.dataset.titulo}"? Esta acción no se puede deshacer y eliminará todas las inscripciones asociadas.`;
         document.getElementById("dialogo-confirm").classList.add("open");
@@ -327,6 +380,13 @@
 
     document.getElementById("dialogo-confirmar").addEventListener("click", async () => {
         cerrarDialogo();
+
+        // FIX: Doble verificación antes de eliminar
+        if (_eliminarRow && _eliminarRow.classList.contains('evento-finalizado')) {
+            toast("No se pueden eliminar eventos finalizados", "err");
+            return;
+        }
+
         const res  = await fetch(`/admin/eventos/${_eliminarId}`, { method: "DELETE" });
         const data = await res.json();
         if (!res.ok) { toast(data.error || "No se pudo eliminar", "err"); return; }

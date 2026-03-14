@@ -349,6 +349,12 @@ public class Main {
                         return;
                     }
 
+                    // 🔒 BLOQUEO GENERAL: No editar nada si está FINALIZADO
+                    if (evento.getEstado() == EstadoEvento.FINALIZADO) {
+                        ctx.redirect("/admin/eventos");
+                        return;
+                    }
+
                     if ("editar".equals(modo) && (evento.getEstado() == EstadoEvento.PUBLICADO
                             || evento.getEstado() == EstadoEvento.POSPUESTO)) {
                         ctx.redirect("/admin/eventos");
@@ -381,9 +387,19 @@ public class Main {
                         return;
                     }
 
+                   if (evento.getEstado() == EstadoEvento.FINALIZADO) {
+                        ctx.redirect("/admin/eventos");
+                        return;
+                    }
+
                     session.beginTransaction();
 
                     if ("posponer".equals(modo)) {
+                        if (evento.getEstado() == EstadoEvento.FINALIZADO || evento.getEstado() == EstadoEvento.CANCELADO) {
+                            ctx.redirect("/admin/eventos");
+                            return;
+                        }
+
                         LocalDateTime nuevaFecha = LocalDateTime.parse(ctx.formParam("fechaHora"));
                         if (!nuevaFecha.isAfter(LocalDateTime.now())) {
                             ctx.status(400).result("La nueva fecha debe ser futura");
@@ -393,6 +409,7 @@ public class Main {
                         evento.setLugar(ctx.formParam("lugar"));
                         evento.setEstado(EstadoEvento.POSPUESTO);
                     } else {
+                        // Modo editar
                         if (evento.getEstado() == EstadoEvento.PUBLICADO
                                 || evento.getEstado() == EstadoEvento.POSPUESTO) {
                             ctx.redirect("/admin/eventos");
