@@ -76,6 +76,7 @@
             overflow: hidden;
         }
 
+        /* Stats en fila */
         .stats-inline {
             display: flex;
             gap: 1.2rem;
@@ -101,6 +102,7 @@
             margin-top: 2px;
         }
 
+        /* Barra de ocupación */
         .ocupacion-wrap {
         }
 
@@ -125,6 +127,7 @@
             transition: width 0.4s ease;
         }
 
+        /* Botones de acción */
         .acciones-rapidas {
             display: flex;
             gap: 8px;
@@ -149,6 +152,7 @@
             border-top: 1px solid var(--borde);
         }
 
+        /* Modal de inscripción */
         #modal-inscripcion {
             display: none;
             position: fixed;
@@ -286,6 +290,7 @@
 
 <div class="layout">
 
+    <!-- Sidebar dinámico según rol -->
     <aside class="sidebar">
         <div class="sidebar-header">
             <div class="brand-dot"></div>
@@ -302,6 +307,7 @@
         </div>
         <nav class="sidebar-nav">
 
+            <!-- PARTICIPANTE -->
             <th:block th:if="${usuario != null and usuario.rol.name() == 'PARTICIPANTE'}">
                 <span class="sidebar-label">Explorar</span>
                 <a class="sidebar-link activo" href="/eventos">
@@ -312,6 +318,7 @@
                 </a>
             </th:block>
 
+            <!-- ADMIN -->
             <th:block th:if="${usuario != null and usuario.rol.name() == 'ADMIN'}">
                 <span class="sidebar-label">Administración</span>
                 <a class="sidebar-link" href="/admin/usuarios">
@@ -328,11 +335,11 @@
             </th:block>
 
             <th:block th:if="${usuario != null and usuario.rol.name() == 'ORGANIZADOR'}">
-                <span class="sidebar-label">General</span>
+                <span class="sidebar-label">Panel</span>
                 <a class="sidebar-link" href="/admin/eventos">
                     <span class="icon">📅</span> Gestión Eventos
                 </a>
-                <span class="sidebar-label">Gestion</span>
+                <span class="sidebar-label">Público</span>
                 <a class="sidebar-link activo" href="/eventos">
                     <span class="icon">🌐</span> Ver Eventos
                 </a>
@@ -467,6 +474,7 @@
 
     </main>
 
+    <!-- Modal de Inscripción Exitosa con QR -->
     <div id="modal-inscripcion" onclick="cerrarModalInscripcionOnClickOutside(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="modal-close" onclick="cerrarModalInscripcion()" title="Cerrar">×</button>
@@ -577,6 +585,6 @@
         }
     </script>
 
-</div>
+</div><!-- /layout -->
 </body>
 </html>

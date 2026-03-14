@@ -1,6 +1,7 @@
 package edu.pucmm.eict.main.modelos;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -26,6 +27,9 @@ public class Evento {
     @Column(nullable = false)
     private int cupoMaximo;
 
+    @Column(nullable = false)
+    private int horasApertura = 2;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoEvento estado = EstadoEvento.BORRADOR;
@@ -34,40 +38,96 @@ public class Evento {
     @JoinColumn(name = "organizador_id", nullable = false)
     private Usuario organizador;
 
-    public Evento() {}
+    public Evento() {
+    }
 
     public Evento(String titulo, String descripcion, LocalDateTime fechaHora,
-                  String lugar, int cupoMaximo, Usuario organizador) {
+                  String lugar, int cupoMaximo, int horasApertura, Usuario organizador) {
         this.titulo = titulo;
         this.descripcion = descripcion;
         this.fechaHora = fechaHora;
         this.lugar = lugar;
         this.cupoMaximo = cupoMaximo;
+        this.horasApertura = horasApertura;
         this.organizador = organizador;
         this.estado = EstadoEvento.BORRADOR;
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public boolean isPuertasAbiertas() {
+        LocalDateTime apertura = fechaHora.minusHours(horasApertura);
+        LocalDateTime ahora = LocalDateTime.now();
+        return !ahora.isBefore(apertura);
+    }
 
-    public String getTitulo() { return titulo; }
-    public void setTitulo(String titulo) { this.titulo = titulo; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getDescripcion() { return descripcion; }
-    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public LocalDateTime getFechaHora() { return fechaHora; }
-    public void setFechaHora(LocalDateTime fechaHora) { this.fechaHora = fechaHora; }
+    public String getTitulo() {
+        return titulo;
+    }
 
-    public String getLugar() { return lugar; }
-    public void setLugar(String lugar) { this.lugar = lugar; }
+    public void setTitulo(String titulo) {
+        this.titulo = titulo;
+    }
 
-    public int getCupoMaximo() { return cupoMaximo; }
-    public void setCupoMaximo(int cupoMaximo) { this.cupoMaximo = cupoMaximo; }
+    public String getDescripcion() {
+        return descripcion;
+    }
 
-    public EstadoEvento getEstado() { return estado; }
-    public void setEstado(EstadoEvento estado) { this.estado = estado; }
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
 
-    public Usuario getOrganizador() { return organizador; }
-    public void setOrganizador(Usuario organizador) { this.organizador = organizador; }
+    public LocalDateTime getFechaHora() {
+        return fechaHora;
+    }
+
+    public void setFechaHora(LocalDateTime fechaHora) {
+        this.fechaHora = fechaHora;
+    }
+
+    public String getLugar() {
+        return lugar;
+    }
+
+    public void setLugar(String lugar) {
+        this.lugar = lugar;
+    }
+
+    public int getCupoMaximo() {
+        return cupoMaximo;
+    }
+
+    public void setCupoMaximo(int cupoMaximo) {
+        this.cupoMaximo = cupoMaximo;
+    }
+
+    public int getHorasApertura() {
+        return horasApertura;
+    }
+
+    public void setHorasApertura(int horasApertura) {
+        this.horasApertura = horasApertura;
+    }
+
+    public EstadoEvento getEstado() {
+        return estado;
+    }
+
+    public void setEstado(EstadoEvento estado) {
+        this.estado = estado;
+    }
+
+    public Usuario getOrganizador() {
+        return organizador;
+    }
+
+    public void setOrganizador(Usuario organizador) {
+        this.organizador = organizador;
+    }
 }

@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title th:text="${modo == 'crear'} ? 'Nuevo Evento' : 'Editar Evento'">Evento</title>
+    <title th:text="${modo == 'crear'} ? 'Nuevo Evento' : (${modo == 'posponer'} ? 'Posponer Evento' : 'Editar Evento')">
+        Evento</title>
     <link href="/Style.css" rel="stylesheet">
     <style>
         .form-card {
@@ -112,25 +113,36 @@
     <main class="content">
         <div class="page-header">
             <div>
-                <h2 th:text="${modo == 'crear'} ? 'Nuevo Evento' : 'Editar Evento'">Evento</h2>
-                <p th:text="${modo == 'crear'} ? 'Define los detalles del nuevo encuentro académico' : 'Actualiza la información del evento seleccionado'"></p>
+                <h2 th:text="${modo == 'crear'} ? 'Nuevo Evento' : (${modo == 'posponer'} ? 'Posponer Evento' : 'Editar Evento')">
+                    Evento</h2>
+                <p th:text="${modo == 'crear'} ? 'Define los detalles del nuevo encuentro académico' : (${modo == 'posponer'} ? 'Cambia la fecha, hora y lugar del evento' : 'Actualiza la información del evento seleccionado')"></p>
             </div>
         </div>
 
         <div class="form-card">
             <form id="form-evento"
-                  method="post" th:action="${modo == 'crear'} ? @{/admin/eventos} : @{/admin/eventos/{id}(id=${evento.id})}">
+                  method="post"
+                  th:action="@{${accion}}" th:with="accion=${modo == 'crear'} ? '/admin/eventos' : (${modo == 'posponer'} ? '/admin/eventos/' + ${evento.id} + '/posponer' : '/admin/eventos/' + ${evento.id})">
+
+                <input name="modo" th:value="${modo}" type="hidden">
+
+                <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:var(--radio);
+                    padding:12px 16px;margin-bottom:1.2rem;font-size:0.88rem;color:#92400e"
+                     th:if="${modo == 'posponer'}">
+                    ⚠️ En modo posponer solo puedes modificar la <strong>fecha, hora</strong> y <strong>lugar</strong>.
+                    El evento cambiará automáticamente a estado <strong>POSPUESTO</strong>.
+                </div>
 
                 <div class="form-grid">
 
-                    <div class="field full">
+                    <div class="field full" th:if="${modo != 'posponer'}">
                         <label class="field-label">Título del Evento</label>
                         <input class="field-input" name="titulo" placeholder="Ej. Conferencia de Ciberseguridad 2026"
                                required
                                th:value="${evento != null ? evento.titulo : ''}" type="text">
                     </div>
 
-                    <div class="field full">
+                    <div class="field full" th:if="${modo != 'posponer'}">
                         <label class="field-label">Descripción Detallada</label>
                         <textarea class="field-input" name="descripcion"
                                   placeholder="Escribe aquí los objetivos, ponentes o requisitos..."
@@ -140,7 +152,7 @@
                     <div class="field">
                         <label class="field-label">Fecha y Hora</label>
                         <input class="field-input" name="fechaHora" required
-                               th:value="${evento != null and evento.fechaHora != null} ? |${#temporals.format(evento.fechaHora, 'yyyy-MM-dd')}T${#temporals.format(evento.fechaHora, 'HH:mm')}| : ''"
+                               th:value="${evento != null and evento.fechaHora != null ? #temporals.format(evento.fechaHora, 'yyyy-MM-dd') + 'T' + #temporals.format(evento.fechaHora, 'HH:mm') : ''}"
                                type="datetime-local">
                     </div>
 
@@ -151,18 +163,29 @@
                                th:value="${evento != null ? evento.lugar : ''}" type="text">
                     </div>
 
-                    <div class="field">
+                    <div class="field" th:if="${modo != 'posponer'}">
                         <label class="field-label">Cupo Máximo</label>
                         <input class="field-input" min="1" name="cupoMaximo" placeholder="Ej. 100"
                                required
                                th:value="${evento != null ? evento.cupoMaximo : ''}" type="number">
                     </div>
 
+                    <div class="field" th:if="${modo != 'posponer'}">
+                        <label class="field-label">Apertura de puertas (horas antes)</label>
+                        <input class="field-input" max="72" min="0" name="horasApertura" placeholder="Ej. 2"
+                               required
+                               th:value="${evento != null ? evento.horasApertura : 2}" type="number">
+                        <span style="font-size:0.78rem;color:var(--texto-muted);margin-top:4px;display:block">
+              Horas antes del evento en que se permite registrar asistencia
+            </span>
+                    </div>
+
                 </div>
 
                 <div class="form-actions">
-                    <button class="btn btn-primary" style="width:auto; padding: 10px 32px" th:text="${modo == 'crear'} ? 'Crear Evento' : 'Guardar Cambios'"
-                            type="submit">Guardar
+                    <button class="btn btn-primary" style="width:auto; padding: 10px 32px" th:text="${modo == 'crear'} ? 'Crear Evento' : (${modo == 'posponer'} ? 'Confirmar Posposición' : 'Guardar Cambios')"
+                            type="submit">
+                        Guardar
                     </button>
                     <a class="btn btn-ghost" href="/admin/eventos" style="width:auto; padding: 10px 32px">
                         Descartar

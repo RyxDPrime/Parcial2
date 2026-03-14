@@ -272,22 +272,18 @@ public class Main {
                 String descripcion = ctx.formParam("descripcion");
                 String fechaStr = ctx.formParam("fechaHora");
                 String lugar = ctx.formParam("lugar");
-                int cupo = Integer.parseInt(ctx.formParam("cupoMaximo"));
+                int cupo = Integer.parseInt(Objects.requireNonNull(ctx.formParam("cupoMaximo")));
+                String horasAperturaStr = ctx.formParam("horasApertura");
+                int horasApertura = (horasAperturaStr != null && !horasAperturaStr.isBlank()) ? Integer.parseInt(horasAperturaStr) : 2;
 
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     Usuario organizador = session.find(Usuario.class, u.getId());
-
-                    Evento evento = new Evento(
-                            titulo, descripcion,
-                            LocalDateTime.parse(fechaStr),
-                            lugar, cupo, organizador
-                    );
-
+                    Evento evento = new Evento(titulo, descripcion, LocalDateTime.parse(fechaStr),
+                            lugar, cupo, horasApertura, organizador);
                     session.beginTransaction();
                     session.persist(evento);
                     session.getTransaction().commit();
                 }
-
                 ctx.redirect("/admin/eventos");
             });
 
@@ -297,8 +293,8 @@ public class Main {
                     ctx.redirect("/login");
                     return;
                 }
-
                 Long id = Long.parseLong(ctx.pathParam("id"));
+                String modo = "posponer".equals(ctx.queryParam("modo")) ? "posponer" : "editar";
 
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     Evento evento = session.find(Evento.class, id);
@@ -307,11 +303,19 @@ public class Main {
                         return;
                     }
 
-                    ctx.render("Admin-Evento-Form.html", Map.of(
-                            "usuario", u,
-                            "evento", evento,
-                            "modo", "editar"
-                    ));
+                    if ("editar".equals(modo) && (evento.getEstado() == EstadoEvento.PUBLICADO
+                            || evento.getEstado() == EstadoEvento.POSPUESTO)) {
+                        ctx.redirect("/admin/eventos");
+                        return;
+                    }
+
+                    if ("posponer".equals(modo) && (evento.getEstado() == EstadoEvento.FINALIZADO
+                            || evento.getEstado() == EstadoEvento.CANCELADO)) {
+                        ctx.redirect("/admin/eventos");
+                        return;
+                    }
+
+                    ctx.render("Admin-Evento-Form.html", Map.of("usuario", u, "evento", evento, "modo", modo));
                 }
             });
 
@@ -321,8 +325,8 @@ public class Main {
                     ctx.redirect("/login");
                     return;
                 }
-
                 Long id = Long.parseLong(ctx.pathParam("id"));
+                String modo = "posponer".equals(ctx.formParam("modo")) ? "posponer" : "editar";
 
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     Evento evento = session.find(Evento.class, id);
@@ -332,14 +336,33 @@ public class Main {
                     }
 
                     session.beginTransaction();
-                    evento.setTitulo(ctx.formParam("titulo"));
-                    evento.setDescripcion(ctx.formParam("descripcion"));
-                    evento.setFechaHora(LocalDateTime.parse(Objects.requireNonNull(ctx.formParam("fechaHora"))));
-                    evento.setLugar(ctx.formParam("lugar"));
-                    evento.setCupoMaximo(Integer.parseInt(Objects.requireNonNull(ctx.formParam("cupoMaximo"))));
+
+                    if ("posponer".equals(modo)) {
+                        LocalDateTime nuevaFecha = LocalDateTime.parse(ctx.formParam("fechaHora"));
+                        if (!nuevaFecha.isAfter(LocalDateTime.now())) {
+                            ctx.status(400).result("La nueva fecha debe ser futura");
+                            return;
+                        }
+                        evento.setFechaHora(nuevaFecha);
+                        evento.setLugar(ctx.formParam("lugar"));
+                        evento.setEstado(EstadoEvento.POSPUESTO);
+                    } else {
+                        if (evento.getEstado() == EstadoEvento.PUBLICADO
+                                || evento.getEstado() == EstadoEvento.POSPUESTO) {
+                            ctx.redirect("/admin/eventos");
+                            return;
+                        }
+                        evento.setTitulo(ctx.formParam("titulo"));
+                        evento.setDescripcion(ctx.formParam("descripcion"));
+                        evento.setFechaHora(LocalDateTime.parse(ctx.formParam("fechaHora")));
+                        evento.setLugar(ctx.formParam("lugar"));
+                        evento.setCupoMaximo(Integer.parseInt(ctx.formParam("cupoMaximo")));
+                        String hAperturaStr = ctx.formParam("horasApertura");
+                        evento.setHorasApertura((hAperturaStr != null && !hAperturaStr.isBlank()) ? Integer.parseInt(hAperturaStr) : 2);
+                    }
+
                     session.getTransaction().commit();
                 }
-
                 ctx.redirect("/admin/eventos");
             });
 
@@ -349,12 +372,8 @@ public class Main {
                     ctx.status(401).json(Map.of("error", "No autorizado"));
                     return;
                 }
-
                 Long id = Long.parseLong(ctx.pathParam("id"));
-                @SuppressWarnings("unchecked")
-                Map<String, Object> body = ctx.bodyAsClass(Map.class);
-                String nuevoEstado = body.get("estado").toString();
-
+                String nuevoEstado = ctx.bodyAsClass(Map.class).get("estado").toString();
                 try {
                     EstadoEvento.valueOf(nuevoEstado);
                 } catch (IllegalArgumentException e) {
@@ -369,47 +388,58 @@ public class Main {
                         return;
                     }
 
+                    if (nuevoEstado.equals("FINALIZADO") && LocalDateTime.now().isBefore(evento.getFechaHora())) {
+                        ctx.status(400).json(Map.of("error", "No se puede finalizar un evento que aún no ha ocurrido"));
+                        return;
+                    }
+
                     session.beginTransaction();
                     evento.setEstado(EstadoEvento.valueOf(nuevoEstado));
                     session.getTransaction().commit();
-
                     ctx.json(Map.of("ok", true, "estado", evento.getEstado().toString()));
                 }
             });
 
             config.routes.get("/eventos", ctx -> {
+                String busqueda = ctx.queryParam("q");
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-                    List<Evento> eventos = session
-                            .createQuery("FROM Evento WHERE estado = :e ORDER BY fechaHora ASC", Evento.class)
-                            .setParameter("e", EstadoEvento.PUBLICADO)
-                            .getResultList();
+                    List<Evento> eventos;
+                    if (busqueda != null && !busqueda.isBlank()) {
+                        eventos = session.createQuery(
+                                        "FROM Evento WHERE estado = :e AND LOWER(titulo) LIKE LOWER(:q) ORDER BY fechaHora ASC", Evento.class)
+                                .setParameter("e", EstadoEvento.PUBLICADO)
+                                .setParameter("q", "%" + busqueda.trim() + "%")
+                                .getResultList();
+                    } else {
+                        eventos = session.createQuery(
+                                        "FROM Evento WHERE estado = :e ORDER BY fechaHora ASC", Evento.class)
+                                .setParameter("e", EstadoEvento.PUBLICADO)
+                                .getResultList();
+                    }
 
                     Usuario u = ctx.sessionAttribute("usuario");
                     Map<String, Object> model = new HashMap<>();
                     model.put("eventos", eventos);
                     model.put("usuario", u);
+                    model.put("busqueda", busqueda != null ? busqueda : "");
 
                     Map<Long, Integer> cuposDisponibles = new HashMap<>();
                     for (Evento ev : eventos) {
                         long inscritos = session.createQuery(
                                         "SELECT COUNT(i) FROM Inscripcion i WHERE i.evento.id = :eid", Long.class)
-                                .setParameter("eid", ev.getId())
-                                .getSingleResult();
-                        int disponibles = (int) Math.max(0, ev.getCupoMaximo() - inscritos);
-                        cuposDisponibles.put(ev.getId(), disponibles);
+                                .setParameter("eid", ev.getId()).getSingleResult();
+                        cuposDisponibles.put(ev.getId(), (int) Math.max(0, ev.getCupoMaximo() - inscritos));
                     }
                     model.put("cuposDisponibles", cuposDisponibles);
 
                     if (u != null && u.getRol() == Rol.PARTICIPANTE) {
                         List<Long> ids = session
                                 .createQuery("SELECT i.evento.id FROM Inscripcion i WHERE i.usuario.id = :uid", Long.class)
-                                .setParameter("uid", u.getId())
-                                .getResultList();
+                                .setParameter("uid", u.getId()).getResultList();
                         model.put("inscritosIds", ids);
                     } else {
                         model.put("inscritosIds", List.of());
                     }
-
                     ctx.render("Eventos.html", model);
                 }
             });
@@ -420,9 +450,7 @@ public class Main {
                     ctx.status(403).json(Map.of("error", "Solo el administrador puede eliminar eventos"));
                     return;
                 }
-
                 Long id = Long.parseLong(ctx.pathParam("id"));
-
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     Evento evento = session.find(Evento.class, id);
                     if (evento == null) {
@@ -430,13 +458,16 @@ public class Main {
                         return;
                     }
 
+                    if (evento.getEstado() == EstadoEvento.FINALIZADO) {
+                        ctx.status(400).json(Map.of("error", "No se puede eliminar un evento finalizado"));
+                        return;
+                    }
+
                     session.beginTransaction();
                     session.createMutationQuery("DELETE FROM Inscripcion i WHERE i.evento.id = :eid")
-                            .setParameter("eid", id)
-                            .executeUpdate();
+                            .setParameter("eid", id).executeUpdate();
                     session.remove(evento);
                     session.getTransaction().commit();
-
                     ctx.json(Map.of("ok", true));
                 }
             });
@@ -452,15 +483,7 @@ public class Main {
                     return;
                 }
 
-                Long eventoId;
-                try {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> body = ctx.bodyAsClass(Map.class);
-                    eventoId = Long.parseLong(body.get("eventoId").toString());
-                } catch (Exception e) {
-                    ctx.status(400).json(Map.of("error", "ID de evento inválido"));
-                    return;
-                }
+                Long eventoId = Long.parseLong(ctx.bodyAsClass(Map.class).get("eventoId").toString());
 
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     Evento evento = session.find(Evento.class, eventoId);
@@ -506,7 +529,7 @@ public class Main {
                             "ok", true,
                             "inscripcionId", inscripcion.getId(),
                             "codigoQr", inscripcion.getCodigoQr(),
-                            "eventoTitulo", evento.getTitulo()  // Nuevo campo para el modal
+                            "eventoTitulo", evento.getTitulo()
                     ));
                 }
             });
@@ -524,7 +547,7 @@ public class Main {
 
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     List<Inscripcion> inscripciones = session.createQuery(
-                                    "FROM Inscripcion i JOIN FETCH i.evento WHERE i.usuario.id = :uid ORDER BY i.id DESC",
+                                    "FROM Inscripcion i LEFT JOIN FETCH i.evento WHERE i.usuario.id = :uid ORDER BY i.id DESC",
                                     Inscripcion.class)
                             .setParameter("uid", u.getId())
                             .getResultList();
@@ -549,12 +572,19 @@ public class Main {
                         ctx.status(404).json(Map.of("error", "Inscripción no encontrada"));
                         return;
                     }
+
                     if (!inscripcion.getUsuario().getId().equals(u.getId())) {
                         ctx.status(403).json(Map.of("error", "No autorizado"));
                         return;
                     }
+
                     if (inscripcion.getEvento().getEstado() == EstadoEvento.FINALIZADO) {
                         ctx.status(400).json(Map.of("error", "No se puede cancelar una inscripción de un evento finalizado"));
+                        return;
+                    }
+
+                    if (inscripcion.isAsistencia()) {
+                        ctx.status(400).json(Map.of("error", "No se puede cancelar una inscripción con asistencia registrada"));
                         return;
                     }
 
@@ -634,26 +664,9 @@ public class Main {
                     return;
                 }
 
-                String codigoQr;
-                try {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> body = ctx.bodyAsClass(Map.class);
-                    if (body == null || !body.containsKey("codigoQr")) {
-                        ctx.status(400).json(Map.of("error", "Código QR requerido"));
-                        return;
-                    }
-                    codigoQr = body.get("codigoQr").toString().trim();
-                    if (codigoQr.isEmpty()) {
-                        ctx.status(400).json(Map.of("error", "Código QR no puede estar vacío"));
-                        return;
-                    }
-                } catch (Exception e) {
-                    ctx.status(400).json(Map.of("error", "Formato de solicitud inválido"));
-                    return;
-                }
+                String codigoQr = ctx.bodyAsClass(Map.class).get("codigoQr").toString();
 
-                Session session = HibernateUtil.getSessionFactory().openSession();
-                try {
+                try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     List<Inscripcion> resultado = session.createQuery(
                                     "FROM Inscripcion i JOIN FETCH i.usuario JOIN FETCH i.evento WHERE i.codigoQr = :qr",
                                     Inscripcion.class)
@@ -668,64 +681,42 @@ public class Main {
                     Inscripcion inscripcion = resultado.getFirst();
                     Evento evento = inscripcion.getEvento();
 
-                    if (evento.getEstado() == EstadoEvento.CANCELADO) {
-                        ctx.status(400).json(Map.of("error", "El evento ha sido cancelado"));
+                    if (!evento.isPuertasAbiertas()) {
+                        long minutosRestantes = java.time.Duration.between(
+                                LocalDateTime.now(),
+                                evento.getFechaHora().minusHours(evento.getHorasApertura())
+                        ).toMinutes();
+                        ctx.status(400).json(Map.of("error",
+                                "Las puertas aún no están abiertas. Faltan " + minutosRestantes + " minutos."));
                         return;
                     }
 
-                    if (evento.getEstado() == EstadoEvento.BORRADOR) {
-                        ctx.status(400).json(Map.of("error", "El evento no está publicado"));
+                    if (inscripcion.getUsuario().isBloqueado()) {
+                        ctx.status(403).json(Map.of("error",
+                                "El participante " + inscripcion.getUsuario().getUsername() + " está bloqueado y no puede registrar asistencia"));
                         return;
                     }
 
                     if (inscripcion.isAsistencia()) {
-                        ctx.status(409).json(Map.of(
-                                "error", "Asistencia ya registrada",
+                        ctx.json(Map.of(
+                                "ok", false,
+                                "mensaje", "Asistencia ya registrada anteriormente",
                                 "participante", inscripcion.getUsuario().getUsername(),
-                                "evento", evento.getTitulo(),
-                                "horaAsistencia", inscripcion.getHoraAsistencia() != null ?
-                                        inscripcion.getHoraAsistencia().toString() : "N/A"
+                                "evento", evento.getTitulo()
                         ));
                         return;
                     }
 
                     session.beginTransaction();
-                    try {
-                        boolean registrada = inscripcion.marcarAsistencia();
+                    inscripcion.setAsistencia(true);
+                    session.getTransaction().commit();
 
-                        if (!registrada) {
-                            session.getTransaction().rollback();
-                            ctx.status(409).json(Map.of("error", "Asistencia ya registrada (concurrente)"));
-                            return;
-                        }
-
-                        session.merge(inscripcion);
-                        session.getTransaction().commit();
-
-                        System.out.println("[ASISTENCIA] " + inscripcion.getUsuario().getUsername() +
-                                " -> " + evento.getTitulo() + " @ " + inscripcion.getHoraAsistencia());
-
-                        ctx.json(Map.of(
-                                "ok", true,
-                                "mensaje", "Asistencia registrada correctamente",
-                                "participante", inscripcion.getUsuario().getUsername(),
-                                "evento", evento.getTitulo(),
-                                "horaRegistro", inscripcion.getHoraAsistencia().toString()
-                        ));
-
-                    } catch (Exception e) {
-                        if (session.getTransaction().isActive()) {
-                            session.getTransaction().rollback();
-                        }
-                        throw e;
-                    }
-
-                } catch (Exception e) {
-                    System.err.println("[ERROR] Asistencia: " + e.getMessage());
-                    e.printStackTrace();
-                    ctx.status(500).json(Map.of("error", "Error interno del servidor: " + e.getMessage()));
-                } finally {
-                    session.close();
+                    ctx.json(Map.of(
+                            "ok", true,
+                            "mensaje", "Asistencia registrada correctamente",
+                            "participante", inscripcion.getUsuario().getUsername(),
+                            "evento", evento.getTitulo()
+                    ));
                 }
             });
 

@@ -87,6 +87,8 @@
 <body>
 
 <div class="layout">
+
+    <!-- Sidebar participante -->
     <aside class="sidebar">
         <div class="sidebar-header">
             <div class="brand-dot"></div>
@@ -128,26 +130,34 @@
             </a>
         </div>
 
+        <!-- Grid de inscripciones -->
         <div class="insc-grid" th:if="${!#lists.isEmpty(inscripciones)}">
             <div class="insc-card" th:each="i : ${inscripciones}">
 
                 <div class="insc-card-header">
-                    <h3 th:text="${i.evento.titulo}"></h3>
+                    <h3 th:text="${i.evento != null ? i.evento.titulo : '(Evento eliminado)'}"></h3>
                     <span class="badge"
-                          th:classappend="${i.asistencia} ? 'badge-activo' : (${i.evento.estado.name() == 'CANCELADO'} ? 'badge-bloq' : (${i.evento.estado.name() == 'FINALIZADO'} ? 'badge-org' : 'badge-prot'))"
-                          th:text="${i.asistencia} ? 'Asistió' : (${i.evento.estado.name() == 'PUBLICADO'} ? 'Inscrito' : (${i.evento.estado.name() == 'CANCELADO'} ? 'Cancelado' : (${i.evento.estado.name() == 'FINALIZADO'} ? 'Finalizado' : 'Pendiente')))">
+                          th:classappend="${i.evento == null} ? 'badge-bloq' : (${i.asistencia} ? 'badge-activo' : (${i.evento.estado.name() == 'CANCELADO'} ? 'badge-bloq' : (${i.evento.estado.name() == 'FINALIZADO'} ? 'badge-org' : 'badge-prot')))"
+                          th:text="${i.evento == null} ? 'Eliminado' : (${i.asistencia} ? 'Asistió' : (${i.evento.estado.name() == 'PUBLICADO'} ? 'Inscrito' : (${i.evento.estado.name() == 'CANCELADO'} ? 'Cancelado' : (${i.evento.estado.name() == 'FINALIZADO'} ? 'Finalizado' : 'Pendiente'))))">
                     </span>
                 </div>
 
                 <div class="insc-card-body">
-                    <div class="meta-item">
+                    <!-- FIX: mostrar aviso si el evento fue eliminado -->
+                    <div style="font-size:0.83rem;color:#dc2626;background:#fef2f2;padding:8px 12px;border-radius:8px;border:1px solid #fca5a5"
+                         th:if="${i.evento == null}">
+                        ⚠️ Este evento fue eliminado por el administrador
+                    </div>
+
+                    <div class="meta-item" th:if="${i.evento != null}">
                         📅 <span th:text="${#temporals.format(i.evento.fechaHora, 'dd MMM yyyy, HH:mm')}"></span>
                     </div>
-                    <div class="meta-item">
+                    <div class="meta-item" th:if="${i.evento != null}">
                         📍 <span th:text="${i.evento.lugar}"></span>
                     </div>
 
-                    <div class="qr-wrap" th:if="${i.evento.estado.name() != 'CANCELADO'}">
+                    <!-- QR Code -->
+                    <div class="qr-wrap" th:if="${i.evento != null and i.evento.estado.name() != 'CANCELADO'}">
                         <img alt="Código QR de entrada"
                              onclick="ampliarQR(this)"
                              style="cursor:pointer"
@@ -157,7 +167,7 @@
                     </div>
 
                     <div style="display:flex;gap:8px;justify-content:center;margin-top:0.5rem"
-                         th:if="${i.evento.estado.name() != 'CANCELADO'}">
+                         th:if="${i.evento != null and i.evento.estado.name() != 'CANCELADO'}">
                         <p style="font-size:0.75rem;color:var(--texto-muted);margin:0;align-self:center">
                             Toca para ampliar
                         </p>
@@ -171,26 +181,37 @@
                 </div>
 
                 <div class="insc-card-footer">
+                    <!-- Cancelar solo si el evento está activo, no asistió y evento no fue borrado -->
                     <button class="btn btn-sm btn-danger"
                             onclick="cancelarInscripcion(this)"
                             style="width:auto"
                             th:attr="data-id=${i.id}"
-                            th:if="${i.evento.estado.name() == 'PUBLICADO' or i.evento.estado.name() == 'BORRADOR'}">
+                            th:if="${i.evento != null and !i.asistencia and (i.evento.estado.name() == 'PUBLICADO' or i.evento.estado.name() == 'BORRADOR')}">
                         Cancelar inscripción
                     </button>
+                    <!-- FIX: ya asistió — no puede cancelar -->
+                    <span style="font-size:0.82rem;color:#16a34a;font-weight:600"
+                          th:if="${i.asistencia}">
+                        ✓ Asistencia registrada — inscripción no cancelable
+                    </span>
                     <span style="font-size:0.82rem;color:var(--texto-muted)"
-                          th:if="${i.evento.estado.name() == 'CANCELADO'}">
+                          th:if="${i.evento != null and !i.asistencia and i.evento.estado.name() == 'CANCELADO'}">
                         Evento cancelado por el organizador
                     </span>
                     <span style="font-size:0.82rem;color:var(--texto-muted)"
-                          th:if="${i.evento.estado.name() == 'FINALIZADO'}">
+                          th:if="${i.evento != null and !i.asistencia and i.evento.estado.name() == 'FINALIZADO'}">
                         Evento finalizado
+                    </span>
+                    <span style="font-size:0.82rem;color:var(--texto-muted)"
+                          th:if="${i.evento == null}">
+                        Evento no disponible
                     </span>
                 </div>
 
             </div>
         </div>
 
+        <!-- Estado vacío -->
         <div class="empty-state" th:if="${#lists.isEmpty(inscripciones)}">
             <div style="font-size:2.5rem">🎫</div>
             <p>Aún no te has inscrito en ningún evento.</p>
@@ -202,6 +223,7 @@
     </main>
 </div>
 
+<!-- Modal QR ampliado -->
 <div id="qr-modal" onclick="cerrarModal()"
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9998;
             align-items:center;justify-content:center;cursor:pointer">
