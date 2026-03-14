@@ -524,6 +524,86 @@
         setTimeout(() => t.className = "toast", 3000);
     }
 
+    // Agregar esta función temporal para debug
+    function decodificarImagenDebug(src) {
+        const zona = document.getElementById("zona-pegar");
+        const canvas = document.getElementById("qr-canvas");
+        const img = new Image();
+
+        img.onload = () => {
+            console.log("Imagen cargada:", img.width, "x", img.height);
+
+            // Crear canvas más grande para mejor detección
+            const scale = 2; // Escalar imagen 2x
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
+
+            const ctx = canvas.getContext("2d");
+            ctx.imageSmoothingEnabled = false; // Mejor para QR
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            console.log("Analizando...", imageData.width, "x", imageData.height);
+
+            // Intentar con diferentes inversiones
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: "attemptBoth" // Intentar normal e invertido
+            });
+
+            console.log("Resultado jsQR:", code);
+
+            if (code?.data) {
+                console.log("QR detectado:", code.data);
+                zona.style.borderColor = "#16a34a";
+                zona.innerHTML = `<div class="zona-icon">✅</div><p style="color:#16a34a">Detectado: ${code.data.substring(0, 30)}...</p>`;
+                registrarAsistencia(code.data);
+            } else {
+                console.log("No se detectó QR");
+                // Mostrar el canvas para debug
+                canvas.style.display = "block";
+                canvas.style.maxWidth = "200px";
+                canvas.style.margin = "10px auto";
+                zona.style.borderColor = "#dc2626";
+                zona.innerHTML = `
+                <div class="zona-icon">❌</div>
+                <p style="color:#dc2626">No se detectó QR</p>
+                <p style="font-size:0.7rem;color:#666">Revisa la consola (F12) para debug</p>
+                <img src="${src}" style="max-width:150px;margin-top:10px;border:1px solid #ccc">
+            `;
+            }
+        };
+
+        img.onerror = (e) => {
+            console.error("Error cargando imagen:", e);
+            zona.innerHTML = `<div class="zona-icon">❌</div><p>Error cargando imagen</p>`;
+        };
+
+        img.src = src;
+    }
+
+    // Reemplazar la llamada en leerArchivoQR y onDrop
+    function leerArchivoQR(file) {
+        if (!file || !file.type.startsWith("image/")) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            console.log("Archivo leído, iniciando debug...");
+            decodificarImagenDebug(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function onDrop(e) {
+        e.preventDefault();
+        document.getElementById("zona-pegar").classList.remove("drag-over");
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            console.log("Archivo droppeado:", file.name, file.type);
+            const reader = new FileReader();
+            reader.onload = e => decodificarImagenDebug(e.target.result);
+            reader.readAsDataURL(file);
+        }
+    }
+
     document.getElementById("qr-input")
         ?.addEventListener("keypress", e => { if (e.key === "Enter") registrarAsistencia(); });
 

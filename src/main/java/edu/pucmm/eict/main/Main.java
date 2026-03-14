@@ -14,10 +14,7 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class Main {
 
@@ -980,6 +977,106 @@ public class Main {
 
                     ctx.json(stats);
                 }
+            });
+
+            // DEBUG: Generar QR de prueba y mostrarlo (temporal)
+            config.routes.get("/debug/qr-test", ctx -> {
+                String testUuid = "550e8400-e29b-41d4-a716-446655440000";
+                Long testEventoId = 1L;
+
+                byte[] qr = QRServices.generarQRBytesEstructurado(testUuid, testEventoId);
+                String base64 = Base64.getEncoder().encodeToString(qr);
+
+                ctx.contentType("text/html").result("""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Test QR</title>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+            <style>
+                body { font-family: sans-serif; padding: 20px; }
+                #qr-container { margin: 20px 0; }
+                #resultado { padding: 10px; margin-top: 10px; border-radius: 5px; }
+                .ok { background: #d4edda; color: #155724; }
+                .error { background: #f8d7da; color: #721c24; }
+            </style>
+        </head>
+        <body>
+            <h2>Test de QR</h2>
+            <p>Contenido esperado: <code>E1:550e8400-e29b-41d4-a716-446655440000</code></p>
+            
+            <div id="qr-container">
+                <img id="qr-image" src="data:image/png;base64,%s" width="300">
+            </div>
+            
+            <button onclick="analizarQR()">Analizar QR con jsQR</button>
+            <div id="resultado"></div>
+            
+            <hr>
+            <h3>Subir imagen QR:</h3>
+            <input type="file" id="file-input" accept="image/*" onchange="analizarArchivo(this)">
+            
+            <script>
+                function analizarQR() {
+                    const img = document.getElementById('qr-image');
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    canvas.width = img.naturalWidth * 2;
+                    canvas.height = img.naturalHeight * 2;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "attemptBoth"
+                    });
+                    
+                    mostrarResultado(code);
+                }
+                
+                function analizarArchivo(input) {
+                    const file = input.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = new Image();
+                        img.onload = function() {
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            canvas.width = img.width * 2;
+                            canvas.height = img.height * 2;
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            
+                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                                inversionAttempts: "attemptBoth"
+                            });
+                            
+                            mostrarResultado(code);
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+                
+                function mostrarResultado(code) {
+                    const div = document.getElementById('resultado');
+                    if (code) {
+                        div.className = 'ok';
+                        div.innerHTML = '<strong>✅ QR Detectado:</strong><br>' + 
+                                       'Contenido: <code>' + code.data + '</code><br>' +
+                                       'Es estructurado: ' + (code.data.startsWith('E') ? 'SÍ' : 'NO');
+                    } else {
+                        div.className = 'error';
+                        div.innerHTML = '<strong>❌ No se detectó QR</strong><br>' +
+                                       'Intenta subir la imagen manualmente o usa la cámara';
+                    }
+                }
+            </script>
+        </body>
+        </html>
+        """.formatted(base64));
             });
         }).start(7070);
 
