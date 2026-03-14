@@ -2,125 +2,55 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Eventos — Admin</title>
-    <link href="/Style.css" rel="stylesheet">
+    <link rel="stylesheet" href="/Style.css">
     <style>
         /* ── Dropdown ── */
-        .dropdown {
-            position: relative;
-            display: inline-block;
-        }
-
+        .dropdown { position: relative; display: inline-block; }
         .dropdown-menu {
             display: none;
             position: fixed;
             background: var(--blanco);
             border: 1px solid var(--borde);
             border-radius: var(--radio);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
             min-width: 170px;
             z-index: 9990;
             overflow: hidden;
         }
-
-        .dropdown-menu.open {
-            display: block;
-        }
-
+        .dropdown-menu.open { display: block; }
         .dropdown-item {
-            display: block;
-            width: 100%;
-            text-align: left;
-            padding: 9px 14px;
-            font-size: 0.85rem;
-            color: var(--texto);
-            background: none;
-            border: none;
-            cursor: pointer;
-            text-decoration: none;
+            display: block; width: 100%; text-align: left;
+            padding: 9px 14px; font-size: 0.85rem;
+            color: var(--texto); background: none; border: none;
+            cursor: pointer; text-decoration: none;
             transition: background .15s;
             font-family: 'DM Sans', sans-serif;
         }
-
-        .dropdown-item:hover {
-            background: var(--fondo);
-        }
-
-        .dropdown-item-danger {
-            color: #dc2626 !important;
-        }
-
-        .dropdown-item-danger:hover {
-            background: #fef2f2 !important;
-        }
-
-        .dropdown-divider {
-            height: 1px;
-            background: var(--borde);
-            margin: 4px 0;
-        }
+        .dropdown-item:hover { background: var(--fondo); }
+        .dropdown-item-danger { color: #dc2626 !important; }
+        .dropdown-item-danger:hover { background: #fef2f2 !important; }
+        .dropdown-divider { height: 1px; background: var(--borde); margin: 4px 0; }
 
         /* ── Diálogo de confirmación ── */
         #dialogo-confirm {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5); z-index: 9999;
+            align-items: center; justify-content: center; padding: 1rem;
         }
-
-        #dialogo-confirm.open {
-            display: flex;
-        }
-
+        #dialogo-confirm.open { display: flex; }
         #dialogo-confirm .dialogo-box {
-            background: var(--blanco);
-            border-radius: var(--radio-lg);
-            padding: 2rem;
-            max-width: 400px;
-            width: 100%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            background: var(--blanco); border-radius: var(--radio-lg);
+            padding: 2rem; max-width: 400px; width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
             animation: slideIn .2s ease;
         }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-16px)
-            }
-            to {
-                opacity: 1;
-                transform: none
-            }
-        }
-
-        #dialogo-confirm .dialogo-icon {
-            font-size: 2.5rem;
-            margin-bottom: .75rem;
-        }
-
-        #dialogo-confirm h4 {
-            font-size: 1.1rem;
-            margin-bottom: .5rem;
-            color: var(--texto);
-        }
-
-        #dialogo-confirm p {
-            font-size: .88rem;
-            color: var(--texto-sub);
-            margin-bottom: 1.5rem;
-            line-height: 1.5;
-        }
-
-        #dialogo-confirm .dialogo-btns {
-            display: flex;
-            gap: 8px;
-            justify-content: flex-end;
-        }
+        @keyframes slideIn { from { opacity:0; transform:translateY(-16px) } to { opacity:1; transform:none } }
+        #dialogo-confirm .dialogo-icon { font-size: 2.5rem; margin-bottom: .75rem; }
+        #dialogo-confirm h4 { font-size: 1.1rem; margin-bottom: .5rem; color: var(--texto); }
+        #dialogo-confirm p  { font-size: .88rem; color: var(--texto-sub); margin-bottom: 1.5rem; line-height: 1.5; }
+        #dialogo-confirm .dialogo-btns { display: flex; gap: 8px; justify-content: flex-end; }
 
     </style>
 </head>
@@ -136,34 +66,31 @@
         </div>
         <div class="sidebar-user">
             <div class="sidebar-user-avatar"
-                 th:text="${session.usuario != null and session.usuario.username != null ? session.usuario.username.substring(0,1).toUpperCase() : 'A'}">
-                A
-            </div>
+                 th:text="${session.usuario != null and session.usuario.username != null ? session.usuario.username.substring(0,1).toUpperCase() : 'A'}">A</div>
             <div class="sidebar-user-info">
-                <div class="sidebar-user-name" th:text="${session.usuario != null ? session.usuario.username : ''}">
-                    admin
-                </div>
+                <div class="sidebar-user-name" th:text="${session.usuario != null ? session.usuario.username : ''}">admin</div>
                 <span class="tag-rol" th:text="${session.usuario != null ? session.usuario.rol : ''}">Admin</span>
             </div>
         </div>
         <nav class="sidebar-nav">
+            <!-- Solo ADMIN ve gestión de usuarios -->
             <span class="sidebar-label"
                   th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}">Administración</span>
-            <a class="sidebar-link" href="/admin/usuarios"
+            <a href="/admin/usuarios" class="sidebar-link"
                th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}">
                 <span class="icon">👥</span> Usuarios
             </a>
-            <span class="sidebar-label">General</span>
-            <a class="sidebar-link activo" href="/admin/eventos">
+            <span class="sidebar-label">Panel</span>
+            <a href="/admin/eventos" class="sidebar-link activo">
                 <span class="icon">📅</span> Gestión Eventos
             </a>
-            <span class="sidebar-label">Gestion</span>
-            <a class="sidebar-link" href="/eventos">
+            <span class="sidebar-label">Público</span>
+            <a href="/eventos" class="sidebar-link">
                 <span class="icon">🌐</span> Ver Eventos
             </a>
         </nav>
         <div class="sidebar-footer">
-            <a class="sidebar-logout" href="/logout">
+            <a href="/logout" class="sidebar-logout">
                 <span class="icon">→</span> Cerrar Sesión
             </a>
         </div>
@@ -176,7 +103,7 @@
                 <h2>Eventos</h2>
                 <p>Crea y administra los eventos académicos</p>
             </div>
-            <a class="btn btn-primary btn-sm" href="/admin/eventos/nuevo" style="width:auto">
+            <a href="/admin/eventos/nuevo" class="btn btn-primary btn-sm" style="width:auto">
                 + Nuevo Evento
             </a>
         </div>
@@ -204,86 +131,88 @@
                     <td th:text="${e.cupoMaximo}"></td>
                     <td>
                             <span class="badge"
-                                  th:attr="id='estado-'+${e.id}"
                                   th:classappend="${e.estado.name()=='PUBLICADO'} ? 'badge-activo' : (${e.estado.name()=='CANCELADO'} ? 'badge-bloq' : (${e.estado.name()=='FINALIZADO'} ? 'badge-org' : (${e.estado.name()=='POSPUESTO'} ? 'badge-warn' : 'badge-prot')))"
-                                  th:text="${e.estado}">
+                                  th:text="${e.estado}"
+                                  th:attr="id='estado-'+${e.id}">
                             </span>
                     </td>
                     <td style="text-align:center">
                         <div style="display:flex;gap:6px;justify-content:center;align-items:center">
 
-                            <button class="btn btn-sm btn-success"
+                            <!-- Botón principal: Publicar / Despublicar -->
+                            <button th:if="${e.estado.name() != 'PUBLICADO' and e.estado.name() != 'FINALIZADO'}"
+                                    class="btn btn-sm btn-success"
+                                    th:attr="data-id=${e.id}"
                                     onclick="cambiarEstado(this, 'PUBLICADO')"
-                                    style="width:auto"
-                                    th:attr="data-id=${e.id}"
-                                    th:if="${e.estado.name() != 'PUBLICADO'}">✅ Publicar
-                            </button>
+                                    style="width:auto">✅ Publicar</button>
 
-                            <button class="btn btn-sm btn-ghost"
-                                    onclick="cambiarEstado(this, 'BORRADOR')"
-                                    style="width:auto"
+                            <!-- FINALIZADO — ninguna acción disponible -->
+                            <span th:if="${e.estado.name() == 'FINALIZADO'}"
+                                  style="font-size:0.78rem;color:var(--texto-muted);padding:4px 8px">
+                                    Finalizado
+                                </span>
+
+                            <button th:if="${e.estado.name() == 'PUBLICADO'}"
+                                    class="btn btn-sm btn-ghost"
                                     th:attr="data-id=${e.id}"
-                                    th:if="${e.estado.name() == 'PUBLICADO'}">📝 Despublicar
-                            </button>
+                                    onclick="cambiarEstado(this, 'BORRADOR')"
+                                    style="width:auto">📝 Despublicar</button>
 
                             <!-- Menú desplegable -->
                             <div class="dropdown" th:attr="id='dd-'+${e.id}">
                                 <button class="btn btn-sm btn-ghost dropdown-toggle"
                                         style="width:auto;padding:6px 10px"
-                                        th:attr="onclick='toggleDropdown(' + ${e.id} + ')'">···
-                                </button>
+                                        th:attr="onclick='toggleDropdown(' + ${e.id} + ')'">···</button>
                                 <div class="dropdown-menu" th:attr="id='dm-'+${e.id}">
-                                    <a class="dropdown-item"
+                                    <a th:if="${e.estado.name() != 'PUBLICADO'}"
                                        th:href="@{'/admin/eventos/' + ${e.id} + '/editar'}"
-                                       th:if="${e.estado.name() != 'PUBLICADO'}">✏️ Editar</a>
-                                    <span class="dropdown-item"
+                                       class="dropdown-item">✏️ Editar</a>
+                                    <span th:if="${e.estado.name() == 'PUBLICADO'}"
+                                          class="dropdown-item"
                                           style="opacity:0.45;cursor:not-allowed"
-                                          th:if="${e.estado.name() == 'PUBLICADO'}"
                                           title="Despublica el evento para poder editarlo">
                                             ✏️ Editar (bloqueado)
                                         </span>
+                                    <a th:href="@{/admin/eventos/{id}/resumen(id=${e.id})}"
+                                       class="dropdown-item">📊 Resumen</a>
+                                    <div class="dropdown-divider"></div>
 
-                                    <button class="dropdown-item"
-                                            onclick="cambiarEstado(this, 'PUBLICADO')"
+                                    <button th:if="${e.estado.name() != 'PUBLICADO'}"
+                                            class="dropdown-item"
                                             th:attr="data-id=${e.id}"
-                                            th:if="${e.estado.name() != 'PUBLICADO'}">✅ Publicar
-                                    </button>
+                                            onclick="cambiarEstado(this, 'PUBLICADO')">✅ Publicar</button>
 
-                                    <button class="dropdown-item"
-                                            onclick="cambiarEstado(this, 'BORRADOR')"
+                                    <button th:if="${e.estado.name() == 'PUBLICADO'}"
+                                            class="dropdown-item"
                                             th:attr="data-id=${e.id}"
-                                            th:if="${e.estado.name() == 'PUBLICADO'}">📝 Despublicar
-                                    </button>
+                                            onclick="cambiarEstado(this, 'BORRADOR')">📝 Despublicar</button>
 
-                                    <button class="dropdown-item"
-                                            onclick="cambiarEstado(this, 'FINALIZADO')"
+                                    <button th:if="${e.estado.name() == 'PUBLICADO'}"
+                                            class="dropdown-item"
                                             th:attr="data-id=${e.id}"
-                                            th:if="${e.estado.name() == 'PUBLICADO'}">🏁 Finalizar
-                                    </button>
+                                            onclick="cambiarEstado(this, 'FINALIZADO')">🏁 Finalizar</button>
 
-                                    <button class="dropdown-item"
-                                            onclick="cambiarEstado(this, 'CANCELADO')"
+                                    <button th:if="${e.estado.name() != 'CANCELADO'}"
+                                            class="dropdown-item"
                                             th:attr="data-id=${e.id}"
-                                            th:if="${e.estado.name() != 'CANCELADO'}">🚫 Cancelar
-                                    </button>
+                                            onclick="cambiarEstado(this, 'CANCELADO')">🚫 Cancelar</button>
 
-                                    <a class="dropdown-item"
-                                       th:href="@{/admin/eventos/{id}/editar(id=${e.id}, modo='posponer')}"
-                                       th:if="${e.estado.name() != 'FINALIZADO' and e.estado.name() != 'CANCELADO'}">📅 Posponer</a>
+                                    <!-- Posponer — solo si no está FINALIZADO ni CANCELADO -->
+                                    <a th:if="${e.estado.name() != 'FINALIZADO' and e.estado.name() != 'CANCELADO'}"
+                                       th:href="@{/admin/eventos/{id}/posponer(id=${e.id})}"
+                                       class="dropdown-item">📅 Posponer</a>
 
                                     <!-- Solo ADMIN puede eliminar -->
-                                    <th:block
-                                            th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}">
+                                    <th:block th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}">
                                         <div class="dropdown-divider"></div>
                                         <!-- FIX: no se puede eliminar si está FINALIZADO -->
-                                        <button class="dropdown-item dropdown-item-danger"
-                                                onclick="eliminarEvento(this)"
+                                        <button th:if="${e.estado.name() != 'FINALIZADO'}"
+                                                class="dropdown-item dropdown-item-danger"
                                                 th:attr="data-id=${e.id}, data-titulo=${e.titulo}"
-                                                th:if="${e.estado.name() != 'FINALIZADO'}">🗑 Eliminar
-                                        </button>
-                                        <span class="dropdown-item"
+                                                onclick="eliminarEvento(this)">🗑 Eliminar</button>
+                                        <span th:if="${e.estado.name() == 'FINALIZADO'}"
+                                              class="dropdown-item"
                                               style="opacity:0.45;cursor:not-allowed"
-                                              th:if="${e.estado.name() == 'FINALIZADO'}"
                                               title="Los eventos finalizados no pueden eliminarse">
                                                 🗑 Eliminar (bloqueado)
                                             </span>
@@ -303,10 +232,11 @@
             </table>
         </div>
 
+        <!-- Empty state — se muestra con JS cuando se eliminan todos los eventos -->
         <div id="empty-state" style="display:none;text-align:center;padding:4rem 2rem;color:var(--texto-muted)">
             <div style="font-size:2.8rem;margin-bottom:1rem">📭</div>
             <p style="font-size:1rem;margin-bottom:1.2rem">No hay eventos todavía.</p>
-            <a class="btn btn-primary" href="/admin/eventos/nuevo" style="width:auto;padding:10px 28px">
+            <a href="/admin/eventos/nuevo" class="btn btn-primary" style="width:auto;padding:10px 28px">
                 + Crear el primero
             </a>
         </div>
@@ -316,14 +246,14 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Diálogo de confirmación para eliminar -->
 <div id="dialogo-confirm" onclick="cerrarDialogo()">
     <div class="dialogo-box" onclick="event.stopPropagation()">
         <div class="dialogo-icon">🗑️</div>
         <h4>Eliminar evento</h4>
-        <p id="dialogo-msg">¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer y
-            eliminará todas las inscripciones asociadas.</p>
+        <p id="dialogo-msg">¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer y eliminará todas las inscripciones asociadas.</p>
         <div class="dialogo-btns">
-            <button class="btn btn-ghost btn-sm" onclick="cerrarDialogo()" style="width:auto">Cancelar</button>
+            <button class="btn btn-ghost btn-sm" style="width:auto" onclick="cerrarDialogo()">Cancelar</button>
             <button class="btn btn-sm" id="dialogo-confirmar"
                     style="width:auto;background:#dc2626;color:#fff;border-color:#dc2626">
                 Eliminar
@@ -333,56 +263,60 @@
 </div>
 
 <script>
+    // ── Dropdown (position:fixed para no cortarse por overflow) ──
     function toggleDropdown(id) {
-        const menu = document.getElementById("dm-" + id);
+        const menu   = document.getElementById("dm-" + id);
         const toggle = menu.previousElementSibling; // el botón ···
         const isOpen = menu.classList.contains("open");
 
+        // Cerrar todos
         document.querySelectorAll(".dropdown-menu.open").forEach(m => m.classList.remove("open"));
         if (isOpen) return;
 
+        // Posicionar con getBoundingClientRect para evitar corte por overflow
         const rect = toggle.getBoundingClientRect();
-        menu.style.top = (rect.bottom + window.scrollY + 4) + "px";
-        menu.style.left = (rect.right + window.scrollX - menu.offsetWidth) + "px";
+        menu.style.top  = (rect.bottom + window.scrollY + 4) + "px";
+        menu.style.left = (rect.right  + window.scrollX - menu.offsetWidth) + "px";
         menu.classList.add("open");
 
+        // Ajustar left después de que el menú sea visible (para conocer su ancho real)
         requestAnimationFrame(() => {
             menu.style.left = (rect.right + window.scrollX - menu.offsetWidth) + "px";
         });
     }
-
+    // Cerrar al hacer clic fuera
     document.addEventListener("click", e => {
         if (!e.target.closest(".dropdown")) {
             document.querySelectorAll(".dropdown-menu.open").forEach(m => m.classList.remove("open"));
         }
     });
+    // Reposicionar al hacer scroll
     window.addEventListener("scroll", () => {
         document.querySelectorAll(".dropdown-menu.open").forEach(m => m.classList.remove("open"));
     }, true);
 
+    // ── Cambiar estado ────────────────────────────────────────
     async function cambiarEstado(btn, nuevoEstado) {
         const id = btn.dataset.id;
         // Cerrar dropdown
         document.querySelectorAll(".dropdown-menu.open").forEach(m => m.classList.remove("open"));
         const res = await fetch(`/admin/eventos/${id}/estado`, {
             method: "PATCH",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({estado: nuevoEstado})
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ estado: nuevoEstado })
         });
         const data = await res.json();
-        if (!res.ok) {
-            toast(data.error, "err");
-            return;
-        }
+        if (!res.ok) { toast(data.error, "err"); return; }
         toast(`Estado actualizado a ${data.estado}`);
         setTimeout(() => location.reload(), 800);
     }
 
-    let _eliminarId = null;
+    // ── Eliminar con diálogo ──────────────────────────────────
+    let _eliminarId  = null;
     let _eliminarRow = null;
 
     function eliminarEvento(btn) {
-        _eliminarId = btn.dataset.id;
+        _eliminarId  = btn.dataset.id;
         _eliminarRow = btn.closest("tr");
         document.getElementById("dialogo-msg").textContent =
             `¿Eliminar permanentemente "${btn.dataset.titulo}"? Esta acción no se puede deshacer y eliminará todas las inscripciones asociadas.`;
@@ -393,12 +327,9 @@
 
     document.getElementById("dialogo-confirmar").addEventListener("click", async () => {
         cerrarDialogo();
-        const res = await fetch(`/admin/eventos/${_eliminarId}`, {method: "DELETE"});
+        const res  = await fetch(`/admin/eventos/${_eliminarId}`, { method: "DELETE" });
         const data = await res.json();
-        if (!res.ok) {
-            toast(data.error || "No se pudo eliminar", "err");
-            return;
-        }
+        if (!res.ok) { toast(data.error || "No se pudo eliminar", "err"); return; }
         toast("Evento eliminado");
         setTimeout(() => {
             _eliminarRow.remove();
@@ -413,11 +344,9 @@
     function cerrarDialogo() {
         document.getElementById("dialogo-confirm").classList.remove("open");
     }
+    document.addEventListener("keydown", e => { if (e.key === "Escape") cerrarDialogo(); });
 
-    document.addEventListener("keydown", e => {
-        if (e.key === "Escape") cerrarDialogo();
-    });
-
+    // ── Toast ─────────────────────────────────────────────────
     function toast(msg, tipo = "ok") {
         const t = document.getElementById("toast");
         t.textContent = msg;

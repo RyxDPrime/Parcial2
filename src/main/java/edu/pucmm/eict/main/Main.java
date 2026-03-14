@@ -286,6 +286,52 @@ public class Main {
                 }
                 ctx.redirect("/admin/eventos");
             });
+            config.routes.get("/admin/eventos/{id}/posponer", ctx -> {
+                Usuario u = ctx.sessionAttribute("usuario");
+                if (u == null || (u.getRol() != Rol.ADMIN && u.getRol() != Rol.ORGANIZADOR)) {
+                    ctx.redirect("/login"); return;
+                }
+                Long id = Long.parseLong(ctx.pathParam("id"));
+                try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+                    Evento evento = session.find(Evento.class, id);
+                    if (evento == null) { ctx.status(404).result("Evento no encontrado"); return; }
+                    if (evento.getEstado() == EstadoEvento.FINALIZADO || evento.getEstado() == EstadoEvento.CANCELADO) {
+                        ctx.redirect("/admin/eventos"); return;
+                    }
+                    ctx.render("Admin-Evento-Form.html", Map.of("usuario", u, "evento", evento, "modo", "posponer"));
+                }
+            });
+
+            config.routes.post("/admin/eventos/{id}/posponer", ctx -> {
+                Usuario u = ctx.sessionAttribute("usuario");
+                if (u == null || (u.getRol() != Rol.ADMIN && u.getRol() != Rol.ORGANIZADOR)) {
+                    ctx.redirect("/login"); return;
+                }
+                Long id = Long.parseLong(ctx.pathParam("id"));
+                try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+                    Evento evento = session.find(Evento.class, id);
+                    if (evento == null) { ctx.status(404).result("Evento no encontrado"); return; }
+                    if (evento.getEstado() == EstadoEvento.FINALIZADO || evento.getEstado() == EstadoEvento.CANCELADO) {
+                        ctx.redirect("/admin/eventos"); return;
+                    }
+                    LocalDateTime nuevaFecha = LocalDateTime.parse(Objects.requireNonNull(ctx.formParam("fechaHora")));
+                    if (!nuevaFecha.isAfter(LocalDateTime.now())) {
+                        ctx.render("Admin-Evento-Form.html", Map.of(
+                                "usuario", u, "evento", evento, "modo", "posponer",
+                                "error", "La nueva fecha debe ser futura"
+                        ));
+                        return;
+                    }
+                    session.beginTransaction();
+                    evento.setFechaHora(nuevaFecha);
+                    String lugar = ctx.formParam("lugar");
+                    if (lugar != null && !lugar.isBlank()) evento.setLugar(lugar);
+                    evento.setEstado(EstadoEvento.POSPUESTO);
+                    session.getTransaction().commit();
+                }
+                ctx.redirect("/admin/eventos");
+            });
+
 
             config.routes.get("/admin/eventos/{id}/editar", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
@@ -389,7 +435,12 @@ public class Main {
                     }
 
                     if (nuevoEstado.equals("FINALIZADO") && LocalDateTime.now().isBefore(evento.getFechaHora())) {
-                        ctx.status(400).json(Map.of("error", "No se puede finalizar un evento que aún no ha ocurrido"));
+                        ctx.status(400).json(Map.of("error", "No se puede finalizar un evento que aun no ha ocurrido"));
+                        return;
+                    }
+
+                    if (evento.getEstado() == EstadoEvento.FINALIZADO) {
+                        ctx.status(400).json(Map.of("error", "Un evento finalizado no puede cambiar de estado"));
                         return;
                     }
 
@@ -546,8 +597,14 @@ public class Main {
 // ── MIS INSCRIPCIONES (participante) ──────────────────────────
             config.routes.get("/mis-inscripciones", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
-                if (u == null) { ctx.redirect("/login"); return; }
-                if (u.getRol() != Rol.PARTICIPANTE) { ctx.redirect("/eventos"); return; }
+                if (u == null) {
+                    ctx.redirect("/login");
+                    return;
+                }
+                if (u.getRol() != Rol.PARTICIPANTE) {
+                    ctx.redirect("/eventos");
+                    return;
+                }
 
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     List<Inscripcion> inscripciones = session.createQuery(
@@ -563,7 +620,10 @@ public class Main {
 // ── CANCELAR INSCRIPCIÓN ───────────────────────────────────────
             config.routes.delete("/inscripciones/{id}", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
-                if (u == null) { ctx.status(401).json(Map.of("error", "No autenticado")); return; }
+                if (u == null) {
+                    ctx.status(401).json(Map.of("error", "No autenticado"));
+                    return;
+                }
 
                 Long id = Long.parseLong(ctx.pathParam("id"));
 
@@ -601,14 +661,20 @@ public class Main {
 // ── VER QR DE UNA INSCRIPCIÓN ──────────────────────────────────
             config.routes.get("/inscripciones/{id}/qr", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
-                if (u == null) { ctx.redirect("/login"); return; }
+                if (u == null) {
+                    ctx.redirect("/login");
+                    return;
+                }
 
                 Long id = Long.parseLong(ctx.pathParam("id"));
 
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     Inscripcion inscripcion = session.find(Inscripcion.class, id);
 
-                    if (inscripcion == null) { ctx.status(404).result("No encontrado"); return; }
+                    if (inscripcion == null) {
+                        ctx.status(404).result("No encontrado");
+                        return;
+                    }
                     if (!inscripcion.getUsuario().getId().equals(u.getId())) {
                         ctx.status(403).result("No autorizado");
                         return;
@@ -632,7 +698,10 @@ public class Main {
 
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     Evento evento = session.find(Evento.class, eventoId);
-                    if (evento == null) { ctx.status(404).result("Evento no encontrado"); return; }
+                    if (evento == null) {
+                        ctx.status(404).result("Evento no encontrado");
+                        return;
+                    }
 
                     List<Inscripcion> inscripciones = session.createQuery(
                                     "FROM Inscripcion i JOIN FETCH i.usuario WHERE i.evento.id = :eid ORDER BY i.id",
@@ -641,7 +710,7 @@ public class Main {
                             .getResultList();
 
                     long totalInscritos = inscripciones.size();
-                    long asistieron    = inscripciones.stream().filter(Inscripcion::isAsistencia).count();
+                    long asistieron = inscripciones.stream().filter(Inscripcion::isAsistencia).count();
 
                     ctx.render("admin-inscripciones.html", Map.of(
                             "evento", evento,
@@ -740,12 +809,16 @@ public class Main {
             config.routes.get("/admin/eventos/{id}/resumen", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
                 if (u == null || (u.getRol() != Rol.ADMIN && u.getRol() != Rol.ORGANIZADOR)) {
-                    ctx.redirect("/login"); return;
+                    ctx.redirect("/login");
+                    return;
                 }
                 Long id = Long.parseLong(ctx.pathParam("id"));
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     Evento evento = session.find(Evento.class, id);
-                    if (evento == null) { ctx.status(404).result("No encontrado"); return; }
+                    if (evento == null) {
+                        ctx.status(404).result("No encontrado");
+                        return;
+                    }
                     ctx.render("Admin-Evento-Resumen.html", Map.of("evento", evento, "usuario", u));
                 }
             });
@@ -754,20 +827,24 @@ public class Main {
             config.routes.get("/admin/eventos/{id}/stats", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
                 if (u == null || (u.getRol() != Rol.ADMIN && u.getRol() != Rol.ORGANIZADOR)) {
-                    ctx.status(401).json(Map.of("error", "No autorizado")); return;
+                    ctx.status(401).json(Map.of("error", "No autorizado"));
+                    return;
                 }
                 Long id = Long.parseLong(ctx.pathParam("id"));
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     Evento evento = session.find(Evento.class, id);
-                    if (evento == null) { ctx.status(404).json(Map.of("error", "No encontrado")); return; }
+                    if (evento == null) {
+                        ctx.status(404).json(Map.of("error", "No encontrado"));
+                        return;
+                    }
 
                     List<Inscripcion> inscripciones = session.createQuery(
                                     "FROM Inscripcion i WHERE i.evento.id = :eid", Inscripcion.class)
                             .setParameter("eid", id).getResultList();
 
-                    long totalInscritos   = inscripciones.size();
-                    long totalAsistentes  = inscripciones.stream().filter(Inscripcion::isAsistencia).count();
-                    double porcentaje     = totalInscritos > 0 ? (totalAsistentes * 100.0 / totalInscritos) : 0;
+                    long totalInscritos = inscripciones.size();
+                    long totalAsistentes = inscripciones.stream().filter(Inscripcion::isAsistencia).count();
+                    double porcentaje = totalInscritos > 0 ? (totalAsistentes * 100.0 / totalInscritos) : 0;
 
                     // ── Inscripciones por día ───────────────────────────────
                     // Agrupar por fecha (yyyy-MM-dd) de fechaInscripcion
@@ -780,7 +857,12 @@ public class Main {
                         }
                     }
                     List<Map<String, Object>> porDia = mapDia.entrySet().stream()
-                            .map(e2 -> { Map<String, Object> m = new HashMap<>(); m.put("fecha", e2.getKey()); m.put("total", e2.getValue()); return m; })
+                            .map(e2 -> {
+                                Map<String, Object> m = new HashMap<>();
+                                m.put("fecha", e2.getKey());
+                                m.put("total", e2.getValue());
+                                return m;
+                            })
                             .collect(java.util.stream.Collectors.toList());
 
                     // ── Asistencia por hora ─────────────────────────────────
@@ -793,17 +875,22 @@ public class Main {
                         }
                     }
                     List<Map<String, Object>> porHora = mapHora.entrySet().stream()
-                            .map(e2 -> { Map<String, Object> m = new HashMap<>(); m.put("hora", e2.getKey()); m.put("total", e2.getValue()); return m; })
+                            .map(e2 -> {
+                                Map<String, Object> m = new HashMap<>();
+                                m.put("hora", e2.getKey());
+                                m.put("total", e2.getValue());
+                                return m;
+                            })
                             .collect(java.util.stream.Collectors.toList());
 
                     Map<String, Object> stats = new HashMap<>();
-                    stats.put("totalInscritos",       totalInscritos);
-                    stats.put("totalAsistentes",      totalAsistentes);
-                    stats.put("porcentaje",           Math.round(porcentaje * 10.0) / 10.0);
-                    stats.put("cupoMaximo",           evento.getCupoMaximo());
-                    stats.put("disponibles",          evento.getCupoMaximo() - totalInscritos);
-                    stats.put("inscripcionesPorDia",  porDia);
-                    stats.put("asistenciaPorHora",    porHora);
+                    stats.put("totalInscritos", totalInscritos);
+                    stats.put("totalAsistentes", totalAsistentes);
+                    stats.put("porcentaje", Math.round(porcentaje * 10.0) / 10.0);
+                    stats.put("cupoMaximo", evento.getCupoMaximo());
+                    stats.put("disponibles", evento.getCupoMaximo() - totalInscritos);
+                    stats.put("inscripcionesPorDia", porDia);
+                    stats.put("asistenciaPorHora", porHora);
 
                     ctx.json(stats);
                 }
