@@ -30,7 +30,6 @@ public class Evento {
     @Column(nullable = false)
     private EstadoEvento estado = EstadoEvento.BORRADOR;
 
-    // Organizador que creó el evento
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organizador_id", nullable = false)
     private Usuario organizador;
@@ -48,7 +47,6 @@ public class Evento {
         this.estado = EstadoEvento.BORRADOR;
     }
 
-    // Getters y Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

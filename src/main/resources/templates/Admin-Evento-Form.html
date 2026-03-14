@@ -1,184 +1,191 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title th:text="${modo == 'crear'} ? 'Nuevo Evento' : 'Editar Evento'">Evento</title>
-  <link rel="stylesheet" href="/Style.css">
-  <style>
-    .form-card {
-      background: var(--blanco);
-      border: 1px solid var(--borde);
-      border-radius: var(--radio-lg);
-      padding: 2rem 2.4rem;
-      max-width: 680px;
-      box-shadow: var(--sombra);
-      margin-top: 1rem;
-    }
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.2rem;
-    }
-    .form-grid .full { grid-column: 1 / -1; }
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title th:text="${modo == 'crear'} ? 'Nuevo Evento' : 'Editar Evento'">Evento</title>
+    <link href="/Style.css" rel="stylesheet">
+    <style>
+        .form-card {
+            background: var(--blanco);
+            border: 1px solid var(--borde);
+            border-radius: var(--radio-lg);
+            padding: 2rem 2.4rem;
+            max-width: 680px;
+            box-shadow: var(--sombra);
+            margin-top: 1rem;
+        }
 
-    .field-label {
-      display: block;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--texto-sub);
-      margin-bottom: 6px;
-    }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.2rem;
+        }
 
-    .field-input {
-      width: 100%;
-      border: 1.5px solid var(--borde);
-      border-radius: var(--radio);
-      padding: 10px 14px;
-      font-size: 0.93rem;
-      color: var(--texto);
-      background: var(--fondo);
-      outline: none;
-      transition: var(--t);
-    }
+        .form-grid .full {
+            grid-column: 1 / -1;
+        }
 
-    .field-input:focus {
-      border-color: var(--azul);
-      background: var(--blanco);
-      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-    }
+        .field-label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--texto-sub);
+            margin-bottom: 6px;
+        }
 
-    textarea.field-input {
-      resize: vertical;
-      min-height: 110px;
-      font-family: inherit;
-    }
+        .field-input {
+            width: 100%;
+            border: 1.5px solid var(--borde);
+            border-radius: var(--radio);
+            padding: 10px 14px;
+            font-size: 0.93rem;
+            color: var(--texto);
+            background: var(--fondo);
+            outline: none;
+            transition: var(--t);
+        }
 
-    .form-actions {
-      display: flex;
-      gap: 12px;
-      margin-top: 2rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid var(--borde);
-    }
-  </style>
+        .field-input:focus {
+            border-color: var(--azul);
+            background: var(--blanco);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        textarea.field-input {
+            resize: vertical;
+            min-height: 110px;
+            font-family: inherit;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--borde);
+        }
+    </style>
 </head>
 <body>
 
 <div class="layout">
 
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <div class="brand-dot"></div>
-      <span class="brand-name">Gestión de<br>Eventos</span>
-    </div>
-    <div class="sidebar-user" th:if="${session.usuario != null}">
-      <div class="sidebar-user-avatar"
-           th:text="${session.usuario.username != null ? session.usuario.username.substring(0,1).toUpperCase() : 'A'}">A</div>
-      <div class="sidebar-user-info">
-        <div class="sidebar-user-name" th:text="${session.usuario.username}">admin</div>
-        <span class="tag-rol" th:text="${session.usuario.rol}">Admin</span>
-      </div>
-    </div>
-    <nav class="sidebar-nav">
-      <th:block th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}">
-        <span class="sidebar-label">Administración</span>
-        <a href="/admin/usuarios" class="sidebar-link">
-          <span class="icon">👥</span> Usuarios
-        </a>
-      </th:block>
-      <span class="sidebar-label">General</span>
-      <a href="/admin/eventos" class="sidebar-link activo">
-        <span class="icon">📅</span> Gestión Eventos
-      </a>
-      <span class="sidebar-label">Gestion</span>
-      <a href="/eventos" class="sidebar-link">
-        <span class="icon">🌐</span> Ver Eventos
-      </a>
-    </nav>
-    <div class="sidebar-footer">
-      <a href="/logout" class="sidebar-logout">
-        <span class="icon">→</span> Cerrar Sesión
-      </a>
-    </div>
-  </aside>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-dot"></div>
+            <span class="brand-name">Gestión de<br>Eventos</span>
+        </div>
+        <div class="sidebar-user" th:if="${session.usuario != null}">
+            <div class="sidebar-user-avatar"
+                 th:text="${session.usuario.username != null ? session.usuario.username.substring(0,1).toUpperCase() : 'A'}">
+                A
+            </div>
+            <div class="sidebar-user-info">
+                <div class="sidebar-user-name" th:text="${session.usuario.username}">admin</div>
+                <span class="tag-rol" th:text="${session.usuario.rol}">Admin</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <th:block th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}">
+                <span class="sidebar-label">Administración</span>
+                <a class="sidebar-link" href="/admin/usuarios">
+                    <span class="icon">👥</span> Usuarios
+                </a>
+            </th:block>
+            <span class="sidebar-label">General</span>
+            <a class="sidebar-link activo" href="/admin/eventos">
+                <span class="icon">📅</span> Gestión Eventos
+            </a>
+            <span class="sidebar-label">Gestion</span>
+            <a class="sidebar-link" href="/eventos">
+                <span class="icon">🌐</span> Ver Eventos
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <a class="sidebar-logout" href="/logout">
+                <span class="icon">→</span> Cerrar Sesión
+            </a>
+        </div>
+    </aside>
 
-  <main class="content">
-    <div class="page-header">
-      <div>
-        <h2 th:text="${modo == 'crear'} ? 'Nuevo Evento' : 'Editar Evento'">Evento</h2>
-        <p th:text="${modo == 'crear'} ? 'Define los detalles del nuevo encuentro académico' : 'Actualiza la información del evento seleccionado'"></p>
-      </div>
-    </div>
-
-    <div class="form-card">
-      <form th:action="${modo == 'crear'} ? @{/admin/eventos} : @{/admin/eventos/{id}(id=${evento.id})}"
-            method="post" id="form-evento">
-
-        <div class="form-grid">
-
-          <div class="field full">
-            <label class="field-label">Título del Evento</label>
-            <input class="field-input" name="titulo" type="text"
-                   placeholder="Ej. Conferencia de Ciberseguridad 2026"
-                   th:value="${evento != null ? evento.titulo : ''}" required>
-          </div>
-
-          <div class="field full">
-            <label class="field-label">Descripción Detallada</label>
-            <textarea class="field-input" name="descripcion"
-                      placeholder="Escribe aquí los objetivos, ponentes o requisitos..."
-                      th:text="${evento != null ? evento.descripcion : ''}"></textarea>
-          </div>
-
-          <div class="field">
-            <label class="field-label">Fecha y Hora</label>
-            <input class="field-input" name="fechaHora" type="datetime-local"
-                   th:value="${evento != null and evento.fechaHora != null} ? |${#temporals.format(evento.fechaHora, 'yyyy-MM-dd')}T${#temporals.format(evento.fechaHora, 'HH:mm')}| : ''"
-                   required>
-          </div>
-
-          <div class="field">
-            <label class="field-label">Lugar / Ubicación</label>
-            <input class="field-input" name="lugar" type="text"
-                   placeholder="Ej. Auditorio T-102"
-                   th:value="${evento != null ? evento.lugar : ''}" required>
-          </div>
-
-          <div class="field">
-            <label class="field-label">Cupo Máximo</label>
-            <input class="field-input" name="cupoMaximo" type="number" min="1"
-                   placeholder="Ej. 100"
-                   th:value="${evento != null ? evento.cupoMaximo : ''}" required>
-          </div>
-
+    <main class="content">
+        <div class="page-header">
+            <div>
+                <h2 th:text="${modo == 'crear'} ? 'Nuevo Evento' : 'Editar Evento'">Evento</h2>
+                <p th:text="${modo == 'crear'} ? 'Define los detalles del nuevo encuentro académico' : 'Actualiza la información del evento seleccionado'"></p>
+            </div>
         </div>
 
-        <div class="form-actions">
-          <button class="btn btn-primary" type="submit" style="width:auto; padding: 10px 32px"
-                  th:text="${modo == 'crear'} ? 'Crear Evento' : 'Guardar Cambios'">Guardar</button>
-          <a href="/admin/eventos" class="btn btn-ghost" style="width:auto; padding: 10px 32px">
-            Descartar
-          </a>
-        </div>
+        <div class="form-card">
+            <form id="form-evento"
+                  method="post" th:action="${modo == 'crear'} ? @{/admin/eventos} : @{/admin/eventos/{id}(id=${evento.id})}">
 
-      </form>
-    </div>
-  </main>
+                <div class="form-grid">
+
+                    <div class="field full">
+                        <label class="field-label">Título del Evento</label>
+                        <input class="field-input" name="titulo" placeholder="Ej. Conferencia de Ciberseguridad 2026"
+                               required
+                               th:value="${evento != null ? evento.titulo : ''}" type="text">
+                    </div>
+
+                    <div class="field full">
+                        <label class="field-label">Descripción Detallada</label>
+                        <textarea class="field-input" name="descripcion"
+                                  placeholder="Escribe aquí los objetivos, ponentes o requisitos..."
+                                  th:text="${evento != null ? evento.descripcion : ''}"></textarea>
+                    </div>
+
+                    <div class="field">
+                        <label class="field-label">Fecha y Hora</label>
+                        <input class="field-input" name="fechaHora" required
+                               th:value="${evento != null and evento.fechaHora != null} ? |${#temporals.format(evento.fechaHora, 'yyyy-MM-dd')}T${#temporals.format(evento.fechaHora, 'HH:mm')}| : ''"
+                               type="datetime-local">
+                    </div>
+
+                    <div class="field">
+                        <label class="field-label">Lugar / Ubicación</label>
+                        <input class="field-input" name="lugar" placeholder="Ej. Auditorio T-102"
+                               required
+                               th:value="${evento != null ? evento.lugar : ''}" type="text">
+                    </div>
+
+                    <div class="field">
+                        <label class="field-label">Cupo Máximo</label>
+                        <input class="field-input" min="1" name="cupoMaximo" placeholder="Ej. 100"
+                               required
+                               th:value="${evento != null ? evento.cupoMaximo : ''}" type="number">
+                    </div>
+
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn btn-primary" style="width:auto; padding: 10px 32px" th:text="${modo == 'crear'} ? 'Crear Evento' : 'Guardar Cambios'"
+                            type="submit">Guardar
+                    </button>
+                    <a class="btn btn-ghost" href="/admin/eventos" style="width:auto; padding: 10px 32px">
+                        Descartar
+                    </a>
+                </div>
+
+            </form>
+        </div>
+    </main>
 </div>
 
 <script th:inline="javascript">
-  document.getElementById("form-evento").addEventListener("submit", function(e) {
-    const inputFecha = document.querySelector('[name="fechaHora"]');
-    const fechaSeleccionada = new Date(inputFecha.value);
-    const ahora = new Date();
-    const modoActual = /*[[${modo}]]*/ 'crear';
+    document.getElementById("form-evento").addEventListener("submit", function (e) {
+        const inputFecha = document.querySelector('[name="fechaHora"]');
+        const fechaSeleccionada = new Date(inputFecha.value);
+        const ahora = new Date();
+        const modoActual = /*[[${modo}]]*/ 'crear';
 
-    if (inputFecha.value && fechaSeleccionada < ahora && modoActual === 'crear') {
-      e.preventDefault();
-      alert("La fecha del evento no puede ser anterior a la hora actual.");
-    }
-  });
+        if (inputFecha.value && fechaSeleccionada < ahora && modoActual === 'crear') {
+            e.preventDefault();
+            alert("La fecha del evento no puede ser anterior a la hora actual.");
+        }
+    });
 </script>
 </body>
 </html>

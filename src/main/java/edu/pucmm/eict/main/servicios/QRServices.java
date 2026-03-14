@@ -10,21 +10,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Base64;
 
-/**
- * Servicio para generar imágenes QR a partir del código único de una Inscripcion.
- * Usa la librería ZXing (com.google.zxing).
- */
 public class QRServices {
 
     private static final int QR_WIDTH = 300;
     private static final int QR_HEIGHT = 300;
 
-    /**
-     * Genera un QR como arreglo de bytes PNG a partir del texto dado.
-     *
-     * @param texto  El contenido a codificar (ej: el codigoQr de una Inscripcion)
-     * @return       Bytes de la imagen PNG
-     */
     public static byte[] generarQRBytes(String texto) {
         try {
             QRCodeWriter writer = new QRCodeWriter();
@@ -39,12 +29,6 @@ public class QRServices {
         }
     }
 
-    /**
-     * Genera un QR como String Base64 (útil para embeber en HTML con <img src="data:image/png;base64,...">).
-     *
-     * @param texto  El contenido a codificar
-     * @return       String Base64 de la imagen PNG
-     */
     public static String generarQRBase64(String texto) {
         byte[] qrBytes = generarQRBytes(texto);
         return Base64.getEncoder().encodeToString(qrBytes);

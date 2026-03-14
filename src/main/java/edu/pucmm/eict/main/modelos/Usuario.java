@@ -23,7 +23,6 @@ public class Usuario {
     @Column(nullable = false)
     private boolean bloqueado = false;
 
-    // Constructor vacío requerido por Hibernate
     public Usuario() {}
 
     public Usuario(String username, String password, Rol rol) {
@@ -33,7 +32,6 @@ public class Usuario {
         this.bloqueado = false;
     }
 
-    // Getters y Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

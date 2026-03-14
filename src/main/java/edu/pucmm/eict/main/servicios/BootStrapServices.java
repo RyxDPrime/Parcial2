@@ -24,10 +24,8 @@ public class BootStrapServices {
                     "-tcpAllowOthers",
                     "-ifNotExists"
             ).start();
-            // En iniciarServidorH2(), después de crear el TCP server:
             Server.createWebServer("-webPort", "8082", "-webAllowOthers").start();
 
-            System.out.println("[H2] Servidor iniciado — estado: " + h2Server.getStatus());
             Thread.sleep(500);
 
         } catch (Exception e) {
@@ -54,14 +52,13 @@ public class BootStrapServices {
                     .uniqueResult();
 
             if (cantidadAdmins == 0) {
-                // Encriptar la contraseña del admin antes de guardarla
                 String passwordEncriptado = passwordEncryptor.encryptPassword("admin");
 
                 session.beginTransaction();
                 session.persist(new Usuario("admin", passwordEncriptado, Rol.ADMIN));
                 session.getTransaction().commit();
 
-                System.out.println("[Bootstrap] Usuario ADMIN creado: admin / admin123");
+                System.out.println("[Bootstrap] Usuario ADMIN creado: admin / admin");
             } else {
                 System.out.println("[Bootstrap] Ya existe un ADMIN, no se crea uno nuevo");
             }

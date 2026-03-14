@@ -2,23 +2,22 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Iniciar Sesión</title>
-    <link rel="stylesheet" href="/Style.css">
+    <link href="/Style.css" rel="stylesheet">
 </head>
 <body>
 <div class="auth-wrapper">
 
-    <!-- Panel izquierdo decorativo -->
     <div class="auth-panel">
         <div class="auth-panel-title">Gestión de Eventos Académicos</div>
-        <p class="auth-panel-sub">Plataforma institucional para la organización, inscripción y control de eventos universitarios.</p>
+        <p class="auth-panel-sub">Plataforma institucional para la organización, inscripción y control de eventos
+            universitarios.</p>
         <div class="auth-panel-dots">
             <span></span><span></span><span></span>
         </div>
     </div>
 
-    <!-- Panel derecho — formulario -->
     <div class="auth-form-panel">
         <div class="auth-form-box">
 
@@ -26,8 +25,7 @@
             <h2>Iniciar Sesión</h2>
             <div class="auth-line"></div>
 
-            <!-- Error -->
-            <div th:if="${error}" class="alerta alerta-error">
+            <div class="alerta alerta-error" th:if="${error}">
                 ⚠ <span th:text="${error}"></span>
             </div>
 
@@ -35,12 +33,12 @@
 
                 <div class="field">
                     <label>Usuario</label>
-                    <input name="username" type="text" placeholder="Tu nombre de usuario" required>
+                    <input name="username" placeholder="Tu nombre de usuario" required type="text">
                 </div>
 
                 <div class="field">
                     <label>Contraseña</label>
-                    <input name="password" type="password" placeholder="••••••••" required>
+                    <input name="password" placeholder="••••••••" required type="password">
                 </div>
 
                 <div class="check-field">
@@ -53,7 +51,7 @@
 
             <div class="auth-sep">o</div>
 
-            <a href="/registro" class="btn btn-ghost">Crear nueva cuenta</a>
+            <a class="btn btn-ghost" href="/registro">Crear nueva cuenta</a>
 
         </div>
     </div>

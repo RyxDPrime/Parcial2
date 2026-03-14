@@ -26,15 +26,12 @@ public class Inscripcion {
     @Column(nullable = false)
     private boolean asistencia = false;
 
-    // Fecha en que se inscribió — para gráfico "inscripciones por día"
     @Column(nullable = false)
     private LocalDateTime fechaInscripcion;
 
-    // Hora en que se registró la asistencia — para gráfico "asistencia por hora"
     @Column
     private LocalDateTime horaAsistencia;
 
-    // Constructor vacío requerido por JPA
     public Inscripcion() {}
 
     public Inscripcion(Usuario usuario, Evento evento) {
@@ -44,7 +41,6 @@ public class Inscripcion {
         this.fechaInscripcion = LocalDateTime.now();
     }
 
-    // Getters
     public Long getId() { return id; }
     public Usuario getUsuario() { return usuario; }
     public Evento getEvento() { return evento; }
@@ -53,11 +49,6 @@ public class Inscripcion {
     public LocalDateTime getFechaInscripcion() { return fechaInscripcion; }
     public LocalDateTime getHoraAsistencia() { return horaAsistencia; }
 
-    /**
-     * Registra la asistencia con la hora actual.
-     * Si ya tenía asistencia, no modifica la hora original (preserva primera marcada).
-     * @return true si se registró nueva asistencia, false si ya existía
-     */
     public boolean marcarAsistencia() {
         if (this.asistencia) {
             return false; // Ya estaba marcada
@@ -67,18 +58,11 @@ public class Inscripcion {
         return true;
     }
 
-    /**
-     * Quita la marca de asistencia (para correcciones de administrador).
-     */
     public void quitarAsistencia() {
         this.asistencia = false;
         this.horaAsistencia = null;
     }
 
-    /**
-     * Setter manual para casos especiales (carga de datos, tests).
-     * Preferir usar marcarAsistencia() en producción.
-     */
     public void setAsistencia(boolean asistencia) {
         if (asistencia) {
             this.marcarAsistencia();
@@ -92,9 +76,6 @@ public class Inscripcion {
         this.fechaInscripcion = fechaInscripcion;
     }
 
-    /**
-     * Setter manual para hora (usar con precaución, preferir marcarAsistencia).
-     */
     public void setHoraAsistencia(LocalDateTime horaAsistencia) {
         this.horaAsistencia = horaAsistencia;
     }

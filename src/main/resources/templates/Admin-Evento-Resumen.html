@@ -2,9 +2,9 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title th:text="'Resumen · ' + ${evento.titulo}">Resumen</title>
-    <link rel="stylesheet" href="/Style.css">
+    <link href="/Style.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <style>
         .stats-row {
@@ -13,6 +13,7 @@
             gap: 1rem;
             margin-bottom: 1.8rem;
         }
+
         .stat-card {
             background: var(--blanco);
             border: 1px solid var(--borde);
@@ -21,24 +22,31 @@
             box-shadow: var(--sombra);
             text-align: center;
         }
+
         .stat-num {
             font-family: 'DM Serif Display', serif;
             font-size: 2.2rem;
             color: var(--azul);
             line-height: 1;
         }
+
         .stat-label {
             font-size: 0.8rem;
             color: var(--texto-muted);
             margin-top: 6px;
         }
-        .stat-pct .stat-num { color: #16a34a; }
+
+        .stat-pct .stat-num {
+            color: #16a34a;
+        }
+
         .charts-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1.2rem;
             margin-bottom: 1.8rem;
         }
+
         .chart-card {
             background: var(--blanco);
             border: 1px solid var(--borde);
@@ -46,6 +54,7 @@
             padding: 1.4rem 1.6rem;
             box-shadow: var(--sombra);
         }
+
         .chart-card h4 {
             font-size: 0.92rem;
             color: var(--texto-sub);
@@ -53,8 +62,11 @@
             font-family: 'DM Sans', sans-serif;
             font-weight: 600;
         }
+
         @media (max-width: 768px) {
-            .charts-grid { grid-template-columns: 1fr; }
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -68,38 +80,42 @@
         </div>
         <div class="sidebar-user" th:if="${session.usuario != null}">
             <div class="sidebar-user-avatar"
-                 th:text="${session.usuario != null and session.usuario.username != null ? session.usuario.username.substring(0,1).toUpperCase() : 'A'}">A</div>
+                 th:text="${session.usuario != null and session.usuario.username != null ? session.usuario.username.substring(0,1).toUpperCase() : 'A'}">
+                A
+            </div>
             <div class="sidebar-user-info">
-                <div class="sidebar-user-name" th:text="${session.usuario != null ? session.usuario.username : ''}">admin</div>
+                <div class="sidebar-user-name" th:text="${session.usuario != null ? session.usuario.username : ''}">
+                    admin
+                </div>
                 <span class="tag-rol" th:text="${session.usuario != null ? session.usuario.rol : ''}">Admin</span>
             </div>
         </div>
         <nav class="sidebar-nav">
             <th:block th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}">
                 <span class="sidebar-label">Administración</span>
-                <a href="/admin/usuarios" class="sidebar-link">
+                <a class="sidebar-link" href="/admin/usuarios">
                     <span class="icon">👥</span> Usuarios
                 </a>
             </th:block>
             <span class="sidebar-label">General</span>
-            <a href="/admin/eventos" class="sidebar-link activo">
+            <a class="sidebar-link activo" href="/admin/eventos">
                 <span class="icon">📅</span> Gestión Eventos
             </a>
-            <a th:href="@{/admin/eventos/{id}/inscripciones(id=${evento.id})}"
-               class="sidebar-link" style="padding-left:2.4rem;font-size:.85rem">
+            <a class="sidebar-link"
+               style="padding-left:2.4rem;font-size:.85rem" th:href="@{/admin/eventos/{id}/inscripciones(id=${evento.id})}">
                 <span class="icon">👥</span> Inscripciones
             </a>
-            <a th:href="@{/admin/eventos/{id}/resumen(id=${evento.id})}"
-               class="sidebar-link activo" style="padding-left:2.4rem;font-size:.85rem">
+            <a class="sidebar-link activo"
+               style="padding-left:2.4rem;font-size:.85rem" th:href="@{/admin/eventos/{id}/resumen(id=${evento.id})}">
                 <span class="icon">📊</span> Resumen
             </a>
             <span class="sidebar-label">Gestion</span>
-            <a href="/eventos" class="sidebar-link">
+            <a class="sidebar-link" href="/eventos">
                 <span class="icon">🌐</span> Ver Eventos
             </a>
         </nav>
         <div class="sidebar-footer">
-            <a href="/logout" class="sidebar-logout">
+            <a class="sidebar-logout" href="/logout">
                 <span class="icon">→</span> Cerrar Sesión
             </a>
         </div>
@@ -111,11 +127,10 @@
                 <h2 th:text="${evento.titulo}">Evento</h2>
                 <p th:text="${#temporals.format(evento.fechaHora,'dd MMM yyyy, HH:mm')} + ' · ' + ${evento.lugar}"></p>
             </div>
-            <a th:href="@{/admin/eventos/{id}/inscripciones(id=${evento.id})}"
-               class="btn btn-ghost btn-sm" style="width:auto">← Inscripciones</a>
+            <a class="btn btn-ghost btn-sm"
+               style="width:auto" th:href="@{/admin/eventos/{id}/inscripciones(id=${evento.id})}">← Inscripciones</a>
         </div>
 
-        <!-- Stats -->
         <div class="stats-row" id="stats-row">
             <div class="stat-card">
                 <div class="stat-num" id="stat-inscritos">—</div>
@@ -135,15 +150,14 @@
             </div>
         </div>
 
-        <!-- Gráficas -->
         <div class="charts-grid">
             <div class="chart-card">
                 <h4>Inscripciones por Día</h4>
-                <canvas id="chart-inscripciones" height="220"></canvas>
+                <canvas height="220" id="chart-inscripciones"></canvas>
             </div>
             <div class="chart-card">
                 <h4>🕐 Asistencia por Hora</h4>
-                <canvas id="chart-asistencia" height="220"></canvas>
+                <canvas height="220" id="chart-asistencia"></canvas>
             </div>
         </div>
 
@@ -153,28 +167,28 @@
 <script th:inline="javascript">
     const eventoId = /*[[${evento.id}]]*/ 0;
 
-    const AZUL       = "rgba(37,99,235,0.85)";
+    const AZUL = "rgba(37,99,235,0.85)";
     const AZUL_BORDE = "rgba(37,99,235,1)";
-    const VERDE      = "rgba(22,163,74,0.85)";
-    const VERDE_BORDE= "rgba(22,163,74,1)";
+    const VERDE = "rgba(22,163,74,0.85)";
+    const VERDE_BORDE = "rgba(22,163,74,1)";
 
     const chartOpts = (labelColor) => ({
         responsive: true,
-        plugins: { legend: { display: false } },
+        plugins: {legend: {display: false}},
         scales: {
-            y: { beginAtZero: true, ticks: { stepSize: 1, color: "#94a3b8" }, grid: { color: "#f1f5f9" } },
-            x: { ticks: { color: "#94a3b8" }, grid: { display: false } }
+            y: {beginAtZero: true, ticks: {stepSize: 1, color: "#94a3b8"}, grid: {color: "#f1f5f9"}},
+            x: {ticks: {color: "#94a3b8"}, grid: {display: false}}
         }
     });
 
     async function cargarStats() {
-        const res  = await fetch(`/admin/eventos/${eventoId}/stats`);
+        const res = await fetch(`/admin/eventos/${eventoId}/stats`);
         const data = await res.json();
 
-        document.getElementById("stat-inscritos").textContent  = data.totalInscritos;
-        document.getElementById("stat-cupo").textContent       = data.cupoMaximo;
+        document.getElementById("stat-inscritos").textContent = data.totalInscritos;
+        document.getElementById("stat-cupo").textContent = data.cupoMaximo;
         document.getElementById("stat-asistentes").textContent = data.totalAsistentes;
-        document.getElementById("stat-pct").textContent        = data.porcentaje + "%";
+        document.getElementById("stat-pct").textContent = data.porcentaje + "%";
 
         // Gráfico inscripciones por día
         new Chart(document.getElementById("chart-inscripciones"), {

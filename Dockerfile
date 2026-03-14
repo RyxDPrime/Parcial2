@@ -22,7 +22,7 @@ RUN chown appuser:appgroup app.jar
 
 USER appuser
 
-EXPOSE 7070 9092 8082
+EXPOSE 7070 8082
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget -qO- http://localhost:7070/login || exit 1

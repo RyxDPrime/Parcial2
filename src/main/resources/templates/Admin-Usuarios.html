@@ -2,9 +2,9 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Usuarios — Admin</title>
-    <link rel="stylesheet" href="/Style.css">
+    <link href="/Style.css" rel="stylesheet">
 </head>
 <body>
 
@@ -17,7 +17,9 @@
         </div>
         <div class="sidebar-user" th:if="${session.usuario != null}">
             <div class="sidebar-user-avatar"
-                 th:text="${session.usuario.username != null ? session.usuario.username.substring(0,1).toUpperCase() : 'A'}">A</div>
+                 th:text="${session.usuario.username != null ? session.usuario.username.substring(0,1).toUpperCase() : 'A'}">
+                A
+            </div>
             <div class="sidebar-user-info">
                 <div class="sidebar-user-name" th:text="${session.usuario.username}">admin</div>
                 <span class="tag-rol" th:text="${session.usuario.rol}">Admin</span>
@@ -26,23 +28,23 @@
         <nav class="sidebar-nav">
             <th:block th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}">
                 <span class="sidebar-label">Administración</span>
-                <a href="/admin/usuarios" class="sidebar-link activo">
+                <a class="sidebar-link activo" href="/admin/usuarios">
                     <span class="icon">👥</span> Usuarios
                 </a>
             </th:block>
 
             <span class="sidebar-label">General</span>
-            <a href="/admin/eventos" class="sidebar-link">
+            <a class="sidebar-link" href="/admin/eventos">
                 <span class="icon">📅</span> Gestión Eventos
             </a>
 
             <span class="sidebar-label">Gestion</span>
-            <a href="/eventos" class="sidebar-link">
+            <a class="sidebar-link" href="/eventos">
                 <span class="icon">🌐</span> Ver Eventos
             </a>
         </nav>
         <div class="sidebar-footer">
-            <a href="/logout" class="sidebar-logout">
+            <a class="sidebar-logout" href="/logout">
                 <span class="icon">→</span> Cerrar Sesión
             </a>
         </div>
@@ -74,39 +76,42 @@
                     <td><strong th:text="${u.username}"></strong></td>
                     <td>
                             <span class="badge"
+                                  th:attr="id='rol-'+${u.id}"
                                   th:classappend="${u.rol.name()=='ADMIN'} ? 'badge-admin' : (${u.rol.name()=='ORGANIZADOR'} ? 'badge-org' : 'badge-part')"
-                                  th:text="${u.rol}"
-                                  th:attr="id='rol-'+${u.id}">
+                                  th:text="${u.rol}">
                             </span>
                     </td>
                     <td>
                             <span class="badge"
+                                  th:attr="id='estado-'+${u.id}"
                                   th:classappend="${u.bloqueado} ? 'badge-bloq' : 'badge-activo'"
-                                  th:text="${u.bloqueado} ? 'Bloqueado' : 'Activo'"
-                                  th:attr="id='estado-'+${u.id}">
+                                  th:text="${u.bloqueado} ? 'Bloqueado' : 'Activo'">
                             </span>
                     </td>
 
                     <th:block th:if="${u.username != 'admin'}">
                         <td>
-                            <select class="select-rol" th:attr="data-id=${u.id}" onchange="cambiarRol(this)"
-                                    style="padding: 4px 8px; border-radius: var(--radio); border: 1px solid var(--borde);">
-                                <option value="PARTICIPANTE" th:selected="${u.rol.name()=='PARTICIPANTE'}">Participante</option>
-                                <option value="ORGANIZADOR"  th:selected="${u.rol.name()=='ORGANIZADOR'}">Organizador</option>
+                            <select class="select-rol" onchange="cambiarRol(this)" style="padding: 4px 8px; border-radius: var(--radio); border: 1px solid var(--borde);"
+                                    th:attr="data-id=${u.id}">
+                                <option th:selected="${u.rol.name()=='PARTICIPANTE'}" value="PARTICIPANTE">
+                                    Participante
+                                </option>
+                                <option th:selected="${u.rol.name()=='ORGANIZADOR'}" value="ORGANIZADOR">Organizador
+                                </option>
                             </select>
                         </td>
                         <td style="text-align:center">
                             <button class="btn btn-sm"
-                                    th:classappend="${u.bloqueado} ? 'btn-success' : 'btn-danger'"
-                                    th:text="${u.bloqueado} ? 'Desbloquear' : 'Bloquear'"
-                                    th:attr="data-id=${u.id}, data-bloqueado=${u.bloqueado}"
                                     onclick="cambiarBloqueo(this)"
-                                    style="width: 110px">
+                                    style="width: 110px"
+                                    th:attr="data-id=${u.id}, data-bloqueado=${u.bloqueado}"
+                                    th:classappend="${u.bloqueado} ? 'btn-success' : 'btn-danger'"
+                                    th:text="${u.bloqueado} ? 'Desbloquear' : 'Bloquear'">
                             </button>
                         </td>
                     </th:block>
 
-                    <td th:if="${u.username == 'admin'}" colspan="2" style="text-align: center;">
+                    <td colspan="2" style="text-align: center;" th:if="${u.username == 'admin'}">
                         <span class="badge badge-prot" style="opacity: 0.7">🔒 Cuenta Protegida</span>
                     </td>
                 </tr>
@@ -131,17 +136,22 @@
         try {
             const res = await fetch(`/admin/usuarios/${id}/rol`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ rol: select.value })
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({rol: select.value})
             });
             const data = await res.json();
-            if (!res.ok) { toast(data.error || "Error al cambiar rol", "err"); return; }
+            if (!res.ok) {
+                toast(data.error || "Error al cambiar rol", "err");
+                return;
+            }
 
             const b = document.getElementById(`rol-${id}`);
             b.textContent = data.nuevoRol;
             b.className = "badge " + (data.nuevoRol === "ADMIN" ? "badge-admin" : data.nuevoRol === "ORGANIZADOR" ? "badge-org" : "badge-part");
             toast(`Rol actualizado a ${data.nuevoRol}`);
-        } catch (e) { toast("Error de red", "err"); }
+        } catch (e) {
+            toast("Error de red", "err");
+        }
     }
 
     async function cambiarBloqueo(btn) {
@@ -149,10 +159,13 @@
         try {
             const res = await fetch(`/admin/usuarios/${id}/bloqueo`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" }
+                headers: {"Content-Type": "application/json"}
             });
             const data = await res.json();
-            if (!res.ok) { toast(data.error || "Error en la operación", "err"); return; }
+            if (!res.ok) {
+                toast(data.error || "Error en la operación", "err");
+                return;
+            }
 
             const e = document.getElementById(`estado-${id}`);
             e.textContent = data.bloqueado ? "Bloqueado" : "Activo";
@@ -161,7 +174,9 @@
             btn.textContent = data.bloqueado ? "Desbloquear" : "Bloquear";
             btn.className = "btn btn-sm " + (data.bloqueado ? "btn-success" : "btn-danger");
             toast(data.bloqueado ? "Usuario bloqueado" : "Usuario desbloqueado");
-        } catch (e) { toast("Error de red", "err"); }
+        } catch (e) {
+            toast("Error de red", "err");
+        }
     }
 </script>
 </body>

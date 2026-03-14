@@ -1,59 +1,55 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crear Cuenta</title>
-  <link rel="stylesheet" href="/Style.css">
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Crear Cuenta</title>
+    <link href="/Style.css" rel="stylesheet">
 </head>
 <body>
 <div class="auth-wrapper">
-
-  <!-- Panel izquierdo decorativo -->
-  <div class="auth-panel">
-    <div class="auth-panel-title">Únete a la plataforma institucional</div>
-    <p class="auth-panel-sub">Regístrate para acceder a eventos académicos, talleres, seminarios y más.</p>
-    <div class="auth-panel-dots">
-      <span></span><span></span><span></span>
-    </div>
-  </div>
-
-  <!-- Panel derecho — formulario -->
-  <div class="auth-form-panel">
-    <div class="auth-form-box">
-
-      <p class="auth-eyebrow">Registro</p>
-      <h2>Crear Cuenta</h2>
-      <div class="auth-line"></div>
-
-      <!-- Error -->
-      <div th:if="${error}" class="alerta alerta-error">
-        ⚠ <span th:text="${error}"></span>
-      </div>
-
-      <form action="/registro" method="post">
-
-        <div class="field">
-          <label>Usuario</label>
-          <input name="username" type="text" placeholder="Elige un nombre de usuario" required>
+    <div class="auth-panel">
+        <div class="auth-panel-title">Únete a la plataforma institucional</div>
+        <p class="auth-panel-sub">Regístrate para acceder a eventos académicos, talleres, seminarios y más.</p>
+        <div class="auth-panel-dots">
+            <span></span><span></span><span></span>
         </div>
-
-        <div class="field">
-          <label>Contraseña</label>
-          <input name="password" type="password" placeholder="Mínimo 6 caracteres" required minlength="6">
-        </div>
-
-        <button class="btn btn-primary" type="submit" style="margin-top: 0.4rem;">
-          Crear Cuenta
-        </button>
-      </form>
-
-      <div class="auth-sep">o</div>
-
-      <a href="/login" class="btn btn-ghost">Ya tengo cuenta</a>
-
     </div>
-  </div>
+
+    <div class="auth-form-panel">
+        <div class="auth-form-box">
+
+            <p class="auth-eyebrow">Registro</p>
+            <h2>Crear Cuenta</h2>
+            <div class="auth-line"></div>
+
+            <div class="alerta alerta-error" th:if="${error}">
+                ⚠ <span th:text="${error}"></span>
+            </div>
+
+            <form action="/registro" method="post">
+
+                <div class="field">
+                    <label>Usuario</label>
+                    <input name="username" placeholder="Elige un nombre de usuario" required type="text">
+                </div>
+
+                <div class="field">
+                    <label>Contraseña</label>
+                    <input minlength="6" name="password" placeholder="Mínimo 6 caracteres" required type="password">
+                </div>
+
+                <button class="btn btn-primary" style="margin-top: 0.4rem;" type="submit">
+                    Crear Cuenta
+                </button>
+            </form>
+
+            <div class="auth-sep">o</div>
+
+            <a class="btn btn-ghost" href="/login">Ya tengo cuenta</a>
+
+        </div>
+    </div>
 
 </div>
 </body>

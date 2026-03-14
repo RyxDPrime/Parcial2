@@ -2,9 +2,9 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Eventos Disponibles</title>
-    <link rel="stylesheet" href="/Style.css">
+    <link href="/Style.css" rel="stylesheet">
     <style>
         .eventos-grid {
             display: grid;
@@ -44,12 +44,12 @@
             display: flex;
             gap: 1rem;
             font-size: 0.8rem;
-            color: rgba(255,255,255,0.8);
+            color: rgba(255, 255, 255, 0.8);
             flex-wrap: wrap;
         }
 
         .badge-estado {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             color: #fff;
             font-size: 0.72rem;
             font-weight: 600;
@@ -76,7 +76,6 @@
             overflow: hidden;
         }
 
-        /* Stats en fila */
         .stats-inline {
             display: flex;
             gap: 1.2rem;
@@ -84,21 +83,27 @@
             background: var(--fondo);
             border-radius: 8px;
         }
+
         .stats-inline .stat-item .stat-num {
             font-size: 1.2rem;
             font-weight: 700;
             color: var(--azul);
             line-height: 1;
         }
-        .stats-inline .stat-item .stat-num.verde { color: #16a34a; }
+
+        .stats-inline .stat-item .stat-num.verde {
+            color: #16a34a;
+        }
+
         .stats-inline .stat-item .stat-lbl {
             font-size: 0.7rem;
             color: var(--texto-muted);
             margin-top: 2px;
         }
 
-        /* Barra de ocupación */
-        .ocupacion-wrap { }
+        .ocupacion-wrap {
+        }
+
         .ocupacion-label {
             display: flex;
             justify-content: space-between;
@@ -106,43 +111,55 @@
             color: var(--texto-muted);
             margin-bottom: 4px;
         }
+
         .progress-bar {
             height: 6px;
             background: var(--borde);
             border-radius: 99px;
             overflow: hidden;
         }
+
         .progress-fill {
             height: 100%;
             border-radius: 99px;
             transition: width 0.4s ease;
         }
 
-        /* Botones de acción */
         .acciones-rapidas {
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
         }
-        .acciones-rapidas .btn { flex: 1; min-width: 100px; font-size: 0.85rem; padding: 9px; }
-        .acciones-rapidas .btn-icon { flex: 0 !important; width: auto !important; padding: 9px 12px !important; }
+
+        .acciones-rapidas .btn {
+            flex: 1;
+            min-width: 100px;
+            font-size: 0.85rem;
+            padding: 9px;
+        }
+
+        .acciones-rapidas .btn-icon {
+            flex: 0 !important;
+            width: auto !important;
+            padding: 9px 12px !important;
+        }
 
         .evento-card-footer {
             padding: 1rem 1.4rem;
             border-top: 1px solid var(--borde);
         }
 
-        /* Modal de inscripción */
         #modal-inscripcion {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0, 0, 0, 0.6);
             z-index: 9999;
             align-items: center;
             justify-content: center;
             padding: 1rem;
         }
+
         #modal-inscripcion .modal-content {
             background: #fff;
             border-radius: 16px;
@@ -150,38 +167,108 @@
             max-width: 420px;
             width: 100%;
             text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             position: relative;
             animation: modalSlideIn 0.3s ease;
         }
+
         @keyframes modalSlideIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to   { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
+
         #modal-inscripcion .modal-close {
-            position: absolute; top: 1rem; right: 1rem;
-            background: none; border: none; font-size: 1.5rem; cursor: pointer;
-            color: #94a3b8; width: 32px; height: 32px;
-            display: flex; align-items: center; justify-content: center;
-            border-radius: 50%; transition: all 0.2s;
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #94a3b8;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
         }
-        #modal-inscripcion .modal-close:hover { background: #f1f5f9; color: #64748b; }
-        #modal-inscripcion .modal-icon { font-size: 3rem; margin-bottom: 0.5rem; }
-        #modal-inscripcion .modal-title { color: var(--azul); margin-bottom: 0.5rem; font-size: 1.5rem; }
-        #modal-inscripcion .modal-subtitle { color: var(--texto-muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+        #modal-inscripcion .modal-close:hover {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        #modal-inscripcion .modal-icon {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        #modal-inscripcion .modal-title {
+            color: var(--azul);
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+        }
+
+        #modal-inscripcion .modal-subtitle {
+            color: var(--texto-muted);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
         #modal-inscripcion .modal-qr-container {
-            background: #f8fafc; border-radius: 12px; padding: 1.5rem;
-            margin-bottom: 1.5rem; border: 2px dashed var(--borde);
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 2px dashed var(--borde);
         }
+
         #modal-inscripcion .modal-qr-img {
-            width: 200px; height: 200px; display: block;
-            margin: 0 auto; border-radius: 8px; border: 1px solid var(--borde);
+            width: 200px;
+            height: 200px;
+            display: block;
+            margin: 0 auto;
+            border-radius: 8px;
+            border: 1px solid var(--borde);
         }
-        #modal-inscripcion .modal-qr-hint { font-size: 0.75rem; color: var(--texto-muted); margin-top: 0.75rem; margin-bottom: 0; }
-        #modal-inscripcion .modal-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
-        #modal-inscripcion .modal-footer { margin-top: 1rem; font-size: 0.8rem; color: #94a3b8; }
-        #modal-inscripcion .modal-footer a { color: var(--azul); text-decoration: none; font-weight: 500; }
-        #modal-inscripcion .modal-footer a:hover { text-decoration: underline; }
+
+        #modal-inscripcion .modal-qr-hint {
+            font-size: 0.75rem;
+            color: var(--texto-muted);
+            margin-top: 0.75rem;
+            margin-bottom: 0;
+        }
+
+        #modal-inscripcion .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        #modal-inscripcion .modal-footer {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+
+        #modal-inscripcion .modal-footer a {
+            color: var(--azul);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        #modal-inscripcion .modal-footer a:hover {
+            text-decoration: underline;
+        }
 
         .empty-state {
             text-align: center;
@@ -189,14 +276,16 @@
             color: var(--texto-muted);
         }
 
-        .empty-state p { margin-top: 0.5rem; font-size: 0.9rem; }
+        .empty-state p {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
 
 <div class="layout">
 
-    <!-- Sidebar dinámico según rol -->
     <aside class="sidebar">
         <div class="sidebar-header">
             <div class="brand-dot"></div>
@@ -204,7 +293,8 @@
         </div>
         <div class="sidebar-user" th:if="${usuario != null}">
             <div class="sidebar-user-avatar"
-                 th:text="${usuario.username.substring(0,1).toUpperCase()}">U</div>
+                 th:text="${usuario.username.substring(0,1).toUpperCase()}">U
+            </div>
             <div class="sidebar-user-info">
                 <div class="sidebar-user-name" th:text="${usuario.username}">usuario</div>
                 <span class="tag-rol" th:text="${usuario.rol}">Rol</span>
@@ -212,61 +302,57 @@
         </div>
         <nav class="sidebar-nav">
 
-            <!-- PARTICIPANTE -->
             <th:block th:if="${usuario != null and usuario.rol.name() == 'PARTICIPANTE'}">
                 <span class="sidebar-label">Explorar</span>
-                <a href="/eventos" class="sidebar-link activo">
+                <a class="sidebar-link activo" href="/eventos">
                     <span class="icon">🌐</span> Eventos
                 </a>
-                <a href="/mis-inscripciones" class="sidebar-link">
+                <a class="sidebar-link" href="/mis-inscripciones">
                     <span class="icon">🎫</span> Mis Inscripciones
                 </a>
             </th:block>
 
-            <!-- ADMIN -->
             <th:block th:if="${usuario != null and usuario.rol.name() == 'ADMIN'}">
                 <span class="sidebar-label">Administración</span>
-                <a href="/admin/usuarios" class="sidebar-link">
+                <a class="sidebar-link" href="/admin/usuarios">
                     <span class="icon">👥</span> Usuarios
                 </a>
                 <span class="sidebar-label">General</span>
-                <a href="/admin/eventos" class="sidebar-link">
+                <a class="sidebar-link" href="/admin/eventos">
                     <span class="icon">📅</span> Gestión Eventos
                 </a>
                 <span class="sidebar-label">Gestion</span>
-                <a href="/eventos" class="sidebar-link activo">
+                <a class="sidebar-link activo" href="/eventos">
                     <span class="icon">🌐</span> Ver Eventos
                 </a>
             </th:block>
 
-            <!-- ORGANIZADOR -->
             <th:block th:if="${usuario != null and usuario.rol.name() == 'ORGANIZADOR'}">
                 <span class="sidebar-label">General</span>
-                <a href="/admin/eventos" class="sidebar-link">
+                <a class="sidebar-link" href="/admin/eventos">
                     <span class="icon">📅</span> Gestión Eventos
                 </a>
                 <span class="sidebar-label">Gestion</span>
-                <a href="/eventos" class="sidebar-link activo">
+                <a class="sidebar-link activo" href="/eventos">
                     <span class="icon">🌐</span> Ver Eventos
                 </a>
             </th:block>
 
-            <!-- Sin sesión -->
             <th:block th:if="${usuario == null}">
                 <span class="sidebar-label">Explorar</span>
-                <a href="/eventos" class="sidebar-link activo">
+                <a class="sidebar-link activo" href="/eventos">
                     <span class="icon">🌐</span> Eventos
                 </a>
             </th:block>
 
         </nav>
         <div class="sidebar-footer" th:if="${usuario != null}">
-            <a href="/logout" class="sidebar-logout">
+            <a class="sidebar-logout" href="/logout">
                 <span class="icon">→</span> Cerrar Sesión
             </a>
         </div>
         <div class="sidebar-footer" th:if="${usuario == null}">
-            <a href="/login" class="btn btn-primary"
+            <a class="btn btn-primary" href="/login"
                style="display:block;text-align:center;font-size:.88rem">
                 Iniciar Sesión
             </a>
@@ -282,7 +368,6 @@
             </div>
         </div>
 
-        <!-- Grid de tarjetas -->
         <div class="eventos-grid" th:if="${!#lists.isEmpty(eventos)}">
             <div class="evento-card" th:each="e : ${eventos}">
 
@@ -300,18 +385,19 @@
                 <div class="evento-card-body">
                     <p class="evento-desc" th:text="${e.descripcion}"></p>
 
-                    <!-- Stats en fila -->
                     <div class="stats-inline">
                         <div class="stat-item">
                             <div class="stat-num"
                                  th:attr="id='cupos-txt-' + ${e.id}"
-                                 th:text="${e.cupoMaximo - cuposDisponibles[e.id]}">0</div>
+                                 th:text="${e.cupoMaximo - cuposDisponibles[e.id]}">0
+                            </div>
                             <div class="stat-lbl">Inscritos</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-num verde"
                                  th:attr="id='cupos-lbl-' + ${e.id}"
-                                 th:text="${cuposDisponibles[e.id]}">0</div>
+                                 th:text="${cuposDisponibles[e.id]}">0
+                            </div>
                             <div class="stat-lbl">Disponibles</div>
                         </div>
                         <div class="stat-item">
@@ -320,7 +406,6 @@
                         </div>
                     </div>
 
-                    <!-- Barra de ocupación -->
                     <div class="ocupacion-wrap"
                          th:with="pct=${e.cupoMaximo > 0 ? ((e.cupoMaximo - cuposDisponibles[e.id]) * 100 / e.cupoMaximo) : 0}">
                         <div class="ocupacion-label">
@@ -337,41 +422,37 @@
                 </div>
 
                 <div class="evento-card-footer">
-                    <!-- Sin sesión -->
-                    <a th:if="${usuario == null}"
+                    <a class="btn btn-primary"
                        href="/login"
-                       class="btn btn-primary" style="font-size:0.88rem;padding:9px">
+                       style="font-size:0.88rem;padding:9px" th:if="${usuario == null}">
                         Iniciar sesión para inscribirse
                     </a>
 
-                    <!-- Participante ya inscrito -->
-                    <button th:if="${usuario != null and usuario.rol.name() == 'PARTICIPANTE' and #lists.contains(inscritosIds, e.id)}"
-                            class="btn btn-ghost" disabled
-                            style="font-size:0.88rem;padding:9px;opacity:0.7;cursor:default;width:100%">
+                    <button class="btn btn-ghost"
+                            disabled style="font-size:0.88rem;padding:9px;opacity:0.7;cursor:default;width:100%"
+                            th:if="${usuario != null and usuario.rol.name() == 'PARTICIPANTE' and #lists.contains(inscritosIds, e.id)}">
                         ✓ Ya inscrito
                     </button>
 
-                    <!-- Participante no inscrito -->
-                    <button th:if="${usuario != null and usuario.rol.name() == 'PARTICIPANTE' and !#lists.contains(inscritosIds, e.id)}"
-                            class="btn btn-primary"
-                            th:attr="data-id=${e.id}, data-cupo=${cuposDisponibles[e.id]}, data-total=${e.cupoMaximo}, data-titulo=${e.titulo}"
+                    <button class="btn btn-primary"
                             onclick="inscribirse(this)"
                             style="font-size:0.88rem;padding:9px;width:100%"
+                            th:attr="data-id=${e.id}, data-cupo=${cuposDisponibles[e.id]}, data-total=${e.cupoMaximo}, data-titulo=${e.titulo}"
                             th:disabled="${cuposDisponibles[e.id] <= 0}"
+                            th:if="${usuario != null and usuario.rol.name() == 'PARTICIPANTE' and !#lists.contains(inscritosIds, e.id)}"
                             th:text="${cuposDisponibles[e.id] <= 0} ? 'Sin cupo disponible' : 'Inscribirse'">
                         Inscribirse
                     </button>
 
-                    <!-- Admin/Organizador -->
-                    <div th:if="${usuario != null and usuario.rol.name() != 'PARTICIPANTE'}"
-                         class="acciones-rapidas">
-                        <a th:href="@{/admin/eventos/{id}/inscripciones(id=${e.id})}"
-                           class="btn btn-primary">
-                            👥 Inscripciones
+                    <div class="acciones-rapidas"
+                         th:if="${usuario != null and usuario.rol.name() != 'PARTICIPANTE'}">
+                        <a class="btn btn-primary"
+                           th:href="@{/admin/eventos/{id}/inscripciones(id=${e.id})}">
+                            Inscripciones
                         </a>
-                        <a th:href="@{/admin/eventos/{id}/resumen(id=${e.id})}"
-                           class="btn btn-ghost">
-                            📊 Resumen
+                        <a class="btn btn-ghost"
+                           th:href="@{/admin/eventos/{id}/resumen(id=${e.id})}">
+                            Resumen
                         </a>
                     </div>
                 </div>
@@ -379,7 +460,6 @@
             </div>
         </div>
 
-        <!-- Estado vacío -->
         <div class="empty-state" th:if="${#lists.isEmpty(eventos)}">
             <div style="font-size:2.5rem">📭</div>
             <p>No hay eventos disponibles en este momento.</p>
@@ -387,7 +467,6 @@
 
     </main>
 
-    <!-- Modal de Inscripción Exitosa con QR -->
     <div id="modal-inscripcion" onclick="cerrarModalInscripcionOnClickOutside(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="modal-close" onclick="cerrarModalInscripcion()" title="Cerrar">×</button>
@@ -397,14 +476,15 @@
                 Te has inscrito en <strong id="modal-evento-titulo">Evento</strong>
             </p>
             <div class="modal-qr-container">
-                <img id="modal-qr-img" src="" alt="Código QR" class="modal-qr-img">
+                <img alt="Código QR" class="modal-qr-img" id="modal-qr-img" src="">
                 <p class="modal-qr-hint">Guarda este código. Lo necesitarás para ingresar al evento.</p>
             </div>
             <div class="modal-actions">
-                <a id="modal-descargar-qr" href="#" download class="btn btn-primary" style="width:auto;padding:10px 20px">
+                <a class="btn btn-primary" download href="#" id="modal-descargar-qr"
+                   style="width:auto;padding:10px 20px">
                     ⬇ Descargar QR
                 </a>
-                <button onclick="cerrarModalInscripcion()" class="btn btn-ghost" style="width:auto;padding:10px 20px">
+                <button class="btn btn-ghost" onclick="cerrarModalInscripcion()" style="width:auto;padding:10px 20px">
                     Seguir viendo eventos
                 </button>
             </div>
@@ -418,15 +498,15 @@
 
     <script>
         async function inscribirse(btn) {
-            const id     = btn.dataset.id;
-            const cupo   = parseInt(btn.dataset.cupo);
-            const total  = parseInt(btn.dataset.total);
+            const id = btn.dataset.id;
+            const cupo = parseInt(btn.dataset.cupo);
+            const total = parseInt(btn.dataset.total);
             const titulo = btn.dataset.titulo;
 
             const res = await fetch(`/inscripciones`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ eventoId: id })
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({eventoId: id})
             });
             const data = await res.json();
             if (!res.ok) {
@@ -434,7 +514,6 @@
                 return;
             }
 
-            // Actualizar botón
             btn.textContent = "✓ Ya inscrito";
             btn.disabled = true;
             btn.classList.remove("btn-primary");
@@ -443,36 +522,34 @@
             btn.style.cursor = "default";
             btn.onclick = null;
 
-            // Actualizar stats y barra sin recargar
             const nuevoCupo = Math.max(0, cupo - 1);
             const usado = total - nuevoCupo;
-            const pct   = total > 0 ? Math.round((usado / total) * 100) : 0;
+            const pct = total > 0 ? Math.round((usado / total) * 100) : 0;
 
             const inscrEl = document.getElementById("cupos-txt-" + id);
-            const dispEl  = document.getElementById("cupos-lbl-" + id);
-            const barEl   = document.getElementById("cupo-bar-" + id);
+            const dispEl = document.getElementById("cupos-lbl-" + id);
+            const barEl = document.getElementById("cupo-bar-" + id);
 
             if (inscrEl) inscrEl.textContent = usado;
-            if (dispEl)  dispEl.textContent  = nuevoCupo;
+            if (dispEl) dispEl.textContent = nuevoCupo;
             if (barEl) {
                 barEl.style.width = pct + "%";
                 barEl.style.background = pct >= 90 ? '#dc2626' : (pct >= 60 ? '#f59e0b' : '#2563eb');
             }
 
-            // Mostrar modal con QR
             mostrarModalInscripcion(data.inscripcionId, data.codigoQr, data.eventoTitulo || titulo);
             toast("¡Inscripción exitosa!");
         }
 
         function mostrarModalInscripcion(inscripcionId, codigoQr, eventoTitulo) {
-            const modal  = document.getElementById('modal-inscripcion');
-            const qrUrl  = `/inscripciones/${inscripcionId}/qr`;
+            const modal = document.getElementById('modal-inscripcion');
+            const qrUrl = `/inscripciones/${inscripcionId}/qr`;
 
             document.getElementById('modal-evento-titulo').textContent = eventoTitulo;
             document.getElementById('modal-qr-img').src = qrUrl;
 
             const downloadLink = document.getElementById('modal-descargar-qr');
-            downloadLink.href     = qrUrl;
+            downloadLink.href = qrUrl;
             downloadLink.download = `qr-${eventoTitulo.replace(/\s+/g, '-').toLowerCase().substring(0, 30)}.png`;
 
             modal.style.display = 'flex';
@@ -488,7 +565,7 @@
             }
         }
 
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') cerrarModalInscripcion();
         });
 
@@ -500,6 +577,6 @@
         }
     </script>
 
-</div><!-- /layout -->
+</div>
 </body>
 </html>
