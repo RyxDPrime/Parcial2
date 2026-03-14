@@ -181,7 +181,7 @@
                                        class="dropdown-item">✏️ Editar</a>
 
                                     <!-- FIX: Editar bloqueado si es PUBLICADO -->
-                                    <span th:if="${e.estado.name() == 'PUBLICADO'}"
+                                    <span th:if="${e.estado.name() == 'PUBLICADO' or e.estado.name() == 'Finalizado'}"
                                           class="dropdown-item"
                                           style="opacity:0.45;cursor:not-allowed"
                                           title="Despublica el evento para poder editarlo">

@@ -689,56 +689,59 @@ public class Main {
                     Inscripcion inscripcion = session.find(Inscripcion.class, id);
 
                     if (inscripcion == null) {
-                        ctx.status(404).result("No encontrado");
-                        return;
-                    }
-                    if (!inscripcion.getUsuario().getId().equals(u.getId())) {
-                        ctx.status(403).result("No autorizado");
+                        ctx.status(404).result("Inscripción no encontrada");
                         return;
                     }
 
-                    // Devolver imagen PNG del QR directamente
-                    byte[] qr = QRServices.generarQRBytes(inscripcion.getCodigoQr());
-                    ctx.contentType("image/png").result(qr);
+                    // Validar que el usuario sea el dueño de la inscripción
+                    if (!inscripcion.getUsuario().getId().equals(u.getId())) {
+                        ctx.status(403).result("No autorizado - Esta inscripción no te pertenece");
+                        return;
+                    }
+
+                    // Generar QR con el código UUID de la inscripción
+                    byte[] qr = QRServices.generarQRBytesEstructurado(inscripcion.getCodigoQr(), inscripcion.getId());
+                    ctx.contentType("image/png")
+                            .header("Content-Disposition", "inline; filename=\"qr-" + inscripcion.getCodigoQr() + ".png\"")
+                            .result(qr);
                 }
             });
 
 // ── LISTA DE INSCRIPCIONES POR EVENTO (admin/organizador) ──────
-            config.routes.get("/admin/eventos/{id}/inscripciones", ctx -> {
+            config.routes.get("/inscripciones/{id}/qr", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
-                if (u == null || (u.getRol() != Rol.ADMIN && u.getRol() != Rol.ORGANIZADOR)) {
+                if (u == null) {
                     ctx.redirect("/login");
                     return;
                 }
 
-                Long eventoId = Long.parseLong(ctx.pathParam("id"));
+                Long id = Long.parseLong(ctx.pathParam("id"));
 
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-                    Evento evento = session.find(Evento.class, eventoId);
-                    if (evento == null) {
-                        ctx.status(404).result("Evento no encontrado");
+                    Inscripcion inscripcion = session.find(Inscripcion.class, id);
+
+                    if (inscripcion == null) {
+                        ctx.status(404).result("Inscripción no encontrada");
                         return;
                     }
 
-                    List<Inscripcion> inscripciones = session.createQuery(
-                                    "FROM Inscripcion i JOIN FETCH i.usuario WHERE i.evento.id = :eid ORDER BY i.id",
-                                    Inscripcion.class)
-                            .setParameter("eid", eventoId)
-                            .getResultList();
+                    // Validar que el usuario sea el dueño de la inscripción
+                    if (!inscripcion.getUsuario().getId().equals(u.getId())) {
+                        ctx.status(403).result("No autorizado - Esta inscripción no te pertenece");
+                        return;
+                    }
 
-                    long totalInscritos = inscripciones.size();
-                    long asistieron = inscripciones.stream().filter(Inscripcion::isAsistencia).count();
+                    // OPCIÓN B: Generar QR estructurado con EVENTO ID + UUID
+                    byte[] qr = QRServices.generarQRBytesEstructurado(
+                            inscripcion.getCodigoQr(),
+                            inscripcion.getEvento().getId()
+                    );
 
-                    ctx.render("admin-inscripciones.html", Map.of(
-                            "evento", evento,
-                            "inscripciones", inscripciones,
-                            "totalInscritos", totalInscritos,
-                            "asistieron", asistieron,
-                            "usuario", u
-                    ));
+                    ctx.contentType("image/png")
+                            .header("Content-Disposition", "inline; filename=\"qr-" + inscripcion.getCodigoQr() + ".png\"")
+                            .result(qr);
                 }
             });
-
 // ── MARCAR ASISTENCIA (escaneo QR) ────────────────────────────
             config.routes.post("/admin/asistencia", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
@@ -746,16 +749,53 @@ public class Main {
                     ctx.status(401).json(Map.of("error", "No autorizado"));
                     return;
                 }
+
                 @SuppressWarnings("unchecked")
                 Map<String, Object> body = ctx.bodyAsClass(Map.class);
 
-                String codigoQr = body.get("codigoQr") != null ? body.get("codigoQr").toString().trim() : null;
-                Long eventoIdEsperado = body.get("eventoId") != null ? Long.parseLong(body.get("eventoId").toString()) : null;
+                String qrCrudo = body.get("codigoQr") != null ? body.get("codigoQr").toString().trim() : null;
 
-                if (codigoQr == null || codigoQr.isEmpty()) {
+                Long eventoIdEsperado = null;
+                if (body.get("eventoId") != null) {
+                    try {
+                        eventoIdEsperado = Long.parseLong(body.get("eventoId").toString());
+                    } catch (NumberFormatException e) {
+                        ctx.status(400).json(Map.of("error", "ID de evento inválido"));
+                        return;
+                    }
+                }
+
+                if (qrCrudo == null || qrCrudo.isEmpty()) {
                     ctx.status(400).json(Map.of("error", "Código QR requerido"));
                     return;
                 }
+
+                // OPCIÓN B: Parsear QR estructurado
+                QRServices.ResultadoQR parseado = QRServices.parsearQREstructurado(qrCrudo);
+                Long eventoIdDelQr = parseado.eventoId;
+                String codigoQr = parseado.codigoQr;
+
+                // Validar que el QR tenga estructura correcta
+                if (eventoIdDelQr == null) {
+                    ctx.status(400).json(Map.of(
+                            "error", "Formato de QR inválido",
+                            "detalle", "El QR no contiene información del evento. Asegúrate de usar un QR válido del sistema."
+                    ));
+                    return;
+                }
+
+                // Validar que coincida con el evento donde se escanea
+                if (eventoIdEsperado != null && !eventoIdDelQr.equals(eventoIdEsperado)) {
+                    ctx.status(403).json(Map.of(
+                            "error", "QR no válido para este evento",
+                            "detalle", "Este QR pertenece al evento ID: " + eventoIdDelQr +
+                                    ", pero estás escaneando en el evento ID: " + eventoIdEsperado,
+                            "eventoEsperado", eventoIdEsperado,
+                            "eventoReal", eventoIdDelQr
+                    ));
+                    return;
+                }
+
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     List<Inscripcion> resultado = session.createQuery(
                                     "FROM Inscripcion i JOIN FETCH i.usuario JOIN FETCH i.evento WHERE i.codigoQr = :qr",
@@ -764,38 +804,51 @@ public class Main {
                             .getResultList();
 
                     if (resultado.isEmpty()) {
-                        ctx.status(404).json(Map.of("error", "Código QR no válido"));
+                        ctx.status(404).json(Map.of("error", "Código QR no válido o no encontrado"));
                         return;
                     }
 
                     Inscripcion inscripcion = resultado.getFirst();
                     Evento evento = inscripcion.getEvento();
+                    Usuario participante = inscripcion.getUsuario();
 
-                    // FIX: validar que el QR pertenece al evento desde donde se escanea
-                    Object eventoIdObj = body.get("eventoId");
-                    if (eventoIdObj != null) {
-                        if (!evento.getId().equals(eventoIdEsperado)) {
-                            ctx.status(400).json(Map.of("error",
-                                    "Este QR pertenece al evento \"" + evento.getTitulo() + "\" y no a este evento"));
-                            return;
-                        }
-                    }
-
-                    // FIX: verificar que las puertas estén abiertas (horasApertura antes del evento)
-                    if (!evento.isPuertasAbiertas()) {
-                        long minutosRestantes = java.time.Duration.between(
-                                LocalDateTime.now(),
-                                evento.getFechaHora().minusHours(evento.getHorasApertura())
-                        ).toMinutes();
-                        ctx.status(400).json(Map.of("error",
-                                "Las puertas aún no están abiertas. Faltan " + minutosRestantes + " minutos."));
+                    // Validar consistencia
+                    if (!evento.getId().equals(eventoIdDelQr)) {
+                        ctx.status(403).json(Map.of(
+                                "error", "Inconsistencia de datos",
+                                "detalle", "El QR indica evento ID: " + eventoIdDelQr +
+                                        ", pero la inscripción pertenece al evento ID: " + evento.getId()
+                        ));
                         return;
                     }
 
-                    // FIX: verificar que el usuario no esté bloqueado
-                    if (inscripcion.getUsuario().isBloqueado()) {
-                        ctx.status(403).json(Map.of("error",
-                                "El participante " + inscripcion.getUsuario().getUsername() + " está bloqueado y no puede registrar asistencia"));
+                    // Validaciones de estado, puertas, bloqueo, asistencia...
+                    if (evento.getEstado() == EstadoEvento.CANCELADO) {
+                        ctx.status(400).json(Map.of("error", "El evento fue cancelado"));
+                        return;
+                    }
+
+                    if (evento.getEstado() == EstadoEvento.BORRADOR) {
+                        ctx.status(400).json(Map.of("error", "El evento no está publicado"));
+                        return;
+                    }
+
+                    if (!evento.isPuertasAbiertas()) {
+                        LocalDateTime apertura = evento.getFechaHora().minusHours(evento.getHorasApertura());
+                        long minutosRestantes = java.time.Duration.between(LocalDateTime.now(), apertura).toMinutes();
+                        ctx.status(400).json(Map.of(
+                                "error", "Las puertas aún no están abiertas",
+                                "minutosRestantes", Math.abs(minutosRestantes),
+                                "horaApertura", apertura.toString()
+                        ));
+                        return;
+                    }
+
+                    if (participante.isBloqueado()) {
+                        ctx.status(403).json(Map.of(
+                                "error", "Participante bloqueado",
+                                "participante", participante.getUsername()
+                        ));
                         return;
                     }
 
@@ -803,22 +856,35 @@ public class Main {
                         ctx.json(Map.of(
                                 "ok", false,
                                 "mensaje", "Asistencia ya registrada anteriormente",
-                                "participante", inscripcion.getUsuario().getUsername(),
-                                "evento", evento.getTitulo()
+                                "participante", participante.getUsername(),
+                                "evento", evento.getTitulo(),
+                                "horaRegistro", inscripcion.getHoraAsistencia() != null ?
+                                        inscripcion.getHoraAsistencia().toString() : "desconocida"
                         ));
                         return;
                     }
 
                     session.beginTransaction();
-                    inscripcion.setAsistencia(true);
-                    session.getTransaction().commit();
+                    boolean registrada = inscripcion.marcarAsistencia();
+                    if (registrada) {
+                        session.merge(inscripcion);
+                        session.getTransaction().commit();
 
-                    ctx.json(Map.of(
-                            "ok", true,
-                            "mensaje", "Asistencia registrada correctamente",
-                            "participante", inscripcion.getUsuario().getUsername(),
-                            "evento", evento.getTitulo()
-                    ));
+                        ctx.json(Map.of(
+                                "ok", true,
+                                "mensaje", "Asistencia registrada correctamente",
+                                "participante", participante.getUsername(),
+                                "evento", evento.getTitulo(),
+                                "horaRegistro", inscripcion.getHoraAsistencia().toString()
+                        ));
+                    } else {
+                        session.getTransaction().rollback();
+                        ctx.json(Map.of(
+                                "ok", false,
+                                "mensaje", "La asistencia ya había sido registrada",
+                                "participante", participante.getUsername()
+                        ));
+                    }
                 }
             });
 
