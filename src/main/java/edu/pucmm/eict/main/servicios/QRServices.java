@@ -101,23 +101,37 @@ public class QRServices {
      * Parsea un QR estructurado (formato corto E{id}:{uuid})
      */
     public static ResultadoQR parsearQREstructurado(String qrLeido) {
+        if (qrLeido == null) {
+            return new ResultadoQR(null, null, false);
+        }
+
+        // Normaliza lo leído por cámara (espacios/saltos de línea son comunes)
+        String contenido = qrLeido.trim();
+        if (contenido.isEmpty()) {
+            return new ResultadoQR(null, contenido, false);
+        }
+
         Long eventoId = null;
-        String codigoQr = qrLeido;
+        String codigoQr = contenido;
         boolean esEstructurado = false;
 
-        if (qrLeido != null && qrLeido.startsWith("E")) {
-            esEstructurado = true;
-            int colonIndex = qrLeido.indexOf(':');
-            if (colonIndex > 0) {
+        // Solo se considera estructurado si cumple exactamente E{id}:{codigo}
+        if (contenido.startsWith("E")) {
+            int colonIndex = contenido.indexOf(':');
+            if (colonIndex > 1 && colonIndex < contenido.length() - 1) {
                 try {
-                    String idStr = qrLeido.substring(1, colonIndex);
-                    eventoId = Long.parseLong(idStr);
-                    codigoQr = qrLeido.substring(colonIndex + 1);
-                } catch (NumberFormatException | IndexOutOfBoundsException e) {
-                    // Si falla el parseo, devolver el original
-                    esEstructurado = false;
+                    String idStr = contenido.substring(1, colonIndex).trim();
+                    String codigo = contenido.substring(colonIndex + 1).trim();
+                    if (!idStr.isEmpty() && !codigo.isEmpty()) {
+                        eventoId = Long.parseLong(idStr);
+                        codigoQr = codigo;
+                        esEstructurado = true;
+                    }
+                } catch (NumberFormatException e) {
+                    // Fallback a formato no estructurado (compatibilidad con QR viejos)
                     eventoId = null;
-                    codigoQr = qrLeido;
+                    codigoQr = contenido;
+                    esEstructurado = false;
                 }
             }
         }
