@@ -699,47 +699,50 @@ public class Main {
                         return;
                     }
 
-                    // Generar QR con el código UUID de la inscripción
-                    byte[] qr = QRServices.generarQRBytesEstructurado(inscripcion.getCodigoQr(), inscripcion.getId());
-                    ctx.contentType("image/png")
-                            .header("Content-Disposition", "inline; filename=\"qr-" + inscripcion.getCodigoQr() + ".png\"")
-                            .result(qr);
-                }
-            });
-
-// ── LISTA DE INSCRIPCIONES POR EVENTO (admin/organizador) ──────
-            config.routes.get("/inscripciones/{id}/qr", ctx -> {
-                Usuario u = ctx.sessionAttribute("usuario");
-                if (u == null) {
-                    ctx.redirect("/login");
-                    return;
-                }
-
-                Long id = Long.parseLong(ctx.pathParam("id"));
-
-                try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-                    Inscripcion inscripcion = session.find(Inscripcion.class, id);
-
-                    if (inscripcion == null) {
-                        ctx.status(404).result("Inscripción no encontrada");
-                        return;
-                    }
-
-                    // Validar que el usuario sea el dueño de la inscripción
-                    if (!inscripcion.getUsuario().getId().equals(u.getId())) {
-                        ctx.status(403).result("No autorizado - Esta inscripción no te pertenece");
-                        return;
-                    }
-
-                    // OPCIÓN B: Generar QR estructurado con EVENTO ID + UUID
+                    // ✅ CORRECTO: Usar generarQRBytesEstructurado con 2 argumentos
                     byte[] qr = QRServices.generarQRBytesEstructurado(
-                            inscripcion.getCodigoQr(),
-                            inscripcion.getEvento().getId()
+                            inscripcion.getCodigoQr(),           // String: UUID de la inscripción
+                            inscripcion.getEvento().getId()      // Long: ID del evento
                     );
 
                     ctx.contentType("image/png")
                             .header("Content-Disposition", "inline; filename=\"qr-" + inscripcion.getCodigoQr() + ".png\"")
                             .result(qr);
+                }
+            });
+// ── LISTA DE INSCRIPCIONES POR EVENTO (admin/organizador) ──────
+            config.routes.get("/admin/eventos/{id}/inscripciones", ctx -> {
+                Usuario u = ctx.sessionAttribute("usuario");
+                if (u == null || (u.getRol() != Rol.ADMIN && u.getRol() != Rol.ORGANIZADOR)) {
+                    ctx.redirect("/login");
+                    return;
+                }
+
+                Long eventoId = Long.parseLong(ctx.pathParam("id"));
+
+                try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+                    Evento evento = session.find(Evento.class, eventoId);
+                    if (evento == null) {
+                        ctx.status(404).result("Evento no encontrado");
+                        return;
+                    }
+
+                    List<Inscripcion> inscripciones = session.createQuery(
+                                    "FROM Inscripcion i JOIN FETCH i.usuario WHERE i.evento.id = :eid ORDER BY i.id",
+                                    Inscripcion.class)
+                            .setParameter("eid", eventoId)
+                            .getResultList();
+
+                    long totalInscritos = inscripciones.size();
+                    long asistieron = inscripciones.stream().filter(Inscripcion::isAsistencia).count();
+
+                    ctx.render("admin-inscripciones.html", Map.of(
+                            "evento", evento,
+                            "inscripciones", inscripciones,
+                            "totalInscritos", totalInscritos,
+                            "asistieron", asistieron,
+                            "usuario", u
+                    ));
                 }
             });
 // ── MARCAR ASISTENCIA (escaneo QR) ────────────────────────────
