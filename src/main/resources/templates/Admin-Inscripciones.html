@@ -264,59 +264,360 @@
         </div>
 
         <!-- Campo oculto con el ID del evento para validar QR -->
-        <input type="hidden" id="evento-id-hidden" th:value="${evento.id}">
+        <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+        <script>
+            let streamCamara = null;
+            let rafCamara = null;
+            let ultimoCodigo = null;
+            let procesandoQR = false;
 
-        <!-- ── Scanner QR ── -->
-        <div class="scanner-card" th:if="${evento.estado.name() != 'BORRADOR'}">
-            <h3>📷 Registrar Asistencia</h3>
+            function setTab(tab) {
+                ["texto","imagen","camara"].forEach(t => {
+                    document.getElementById("modo-" + t).style.display = t === tab ? "block" : "none";
+                    document.getElementById("tab-" + t).classList.toggle("activo", t === tab);
+                });
+                if (tab !== "camara") detenerCamara();
+                if (tab === "camara") iniciarCamara();
+                if (tab === "texto") document.getElementById("qr-input").focus();
+            }
 
-            <div style="display:flex; gap:6px; margin-bottom:1rem">
-                <button class="scanner-tab activo" id="tab-texto"  onclick="setTab('texto')">✏️ Código</button>
-                <button class="scanner-tab"        id="tab-imagen" onclick="setTab('imagen')">🖼 Imagen</button>
-                <button class="scanner-tab"        id="tab-camara" onclick="setTab('camara')">📷 Cámara</button>
-            </div>
+            // ========== MODO TEXTO (MÁS CONFIABLE) ==========
+            async function registrarAsistencia(codigoManual) {
+                const inputEl = document.getElementById("qr-input");
+                // Limpieza agresiva del código
+                let codigo = (codigoManual ?? inputEl.value).trim();
 
-            <div id="modo-texto">
-                <div class="scanner-input-row">
-                    <input id="qr-input" type="text"
-                           placeholder="Escanea con lector físico o pega el UUID…"
-                           autocomplete="off">
-                    <button class="btn btn-primary btn-sm" onclick="registrarAsistencia()" style="width:auto">
-                        Registrar
-                    </button>
-                </div>
-            </div>
+                // Eliminar prefijos comunes si existen
+                if (codigo.startsWith("E") && codigo.includes(":")) {
+                    // Formato estructurado: E5:uuid -> extraer uuid
+                    codigo = codigo.substring(codigo.indexOf(":") + 1);
+                }
 
-            <div id="modo-imagen" style="display:none">
-                <div id="zona-pegar"
-                     onclick="document.getElementById('file-input').click()"
-                     ondragover="event.preventDefault(); this.classList.add('drag-over')"
-                     ondragleave="this.classList.remove('drag-over')"
-                     ondrop="onDrop(event)">
-                    <div class="zona-icon">🖼</div>
-                    <p><strong>Clic</strong> para subir · <strong>Ctrl+V</strong> para pegar · <strong>arrastra</strong> la imagen del QR</p>
-                    <input id="file-input" type="file" accept="image/*" style="display:none"
-                           onchange="leerArchivoQR(this.files[0])">
-                </div>
-                <canvas id="qr-canvas" style="display:none"></canvas>
-            </div>
+                // Eliminar cualquier texto antes del UUID (como "EVENTO:5|QR:")
+                if (codigo.includes("|")) {
+                    const partes = codigo.split("|");
+                    for (let parte of partes) {
+                        if (parte.includes("-") && parte.length > 30) {
+                            codigo = parte.replace("QR:", "");
+                        }
+                    }
+                }
 
-            <div id="modo-camara" style="display:none">
-                <div class="camara-frame">
-                    <video id="camara-video" autoplay playsinline muted></video>
-                    <div class="camara-overlay"></div>
-                </div>
-                <canvas id="camara-canvas" style="display:none"></canvas>
-                <p style="text-align:center; font-size:.82rem; color:var(--texto-muted); margin-top:.5rem">
-                    Apunta la cámara al código QR — se detecta automáticamente
-                </p>
-                <div style="text-align:center; margin-top:.5rem">
-                    <button class="btn btn-ghost btn-sm" onclick="setTab('texto')" style="width:auto">Detener cámara</button>
-                </div>
-            </div>
+                // Limpiar espacios y caracteres extraños
+                codigo = codigo.replace(/\s/g, "").replace(/[^a-zA-Z0-9\-]/g, "");
 
-            <div class="scanner-result" id="scanner-result"></div>
-        </div>
+                console.log("Código limpio:", codigo);
+
+                if (!codigo || codigo.length < 30) {
+                    mostrarResultado("❌ Código inválido o vacío", "err");
+                    return;
+                }
+
+                const resultDiv = document.getElementById("scanner-result");
+                resultDiv.style.display = "none";
+
+                try {
+                    const eventoId = document.getElementById("evento-id-hidden").value;
+                    console.log("Enviando:", { codigoQr: codigo, eventoId: eventoId });
+
+                    const res = await fetch("/admin/asistencia", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            codigoQr: codigo,
+                            eventoId: parseInt(eventoId)
+                        })
+                    });
+
+                    const data = await res.json();
+                    console.log("Respuesta:", data);
+
+                    resultDiv.style.display = "block";
+
+                    if (!res.ok) {
+                        resultDiv.className = "scanner-result err";
+                        resultDiv.textContent = "❌ " + (data.error ?? "Error desconocido");
+                        if (data.detalle) {
+                            resultDiv.innerHTML += "<br><small style='font-size:0.8rem'>" + data.detalle + "</small>";
+                        }
+                    } else if (data.ok) {
+                        resultDiv.className = "scanner-result ok";
+                        resultDiv.textContent = "✓ " + data.mensaje + " — " + data.participante;
+                        actualizarBadge(codigo);
+                        toast("Asistencia registrada: " + data.participante);
+                        inputEl.value = "";
+                    } else {
+                        resultDiv.className = "scanner-result dup";
+                        resultDiv.textContent = "⚠ " + data.mensaje + " — " + data.participante;
+                    }
+                } catch (e) {
+                    console.error("Error:", e);
+                    resultDiv.style.display = "block";
+                    resultDiv.className = "scanner-result err";
+                    resultDiv.textContent = "❌ Error de conexión: " + e.message;
+                }
+
+                setTimeout(() => resultDiv.style.display = "none", 8000);
+            }
+
+            function mostrarResultado(msg, tipo) {
+                const div = document.getElementById("scanner-result");
+                div.style.display = "block";
+                div.className = "scanner-result " + (tipo === "err" ? "err" : tipo === "dup" ? "dup" : "ok");
+                div.textContent = msg;
+            }
+
+            function actualizarBadge(codigoQr) {
+                // Buscar por el código QR en la tabla
+                const badges = document.querySelectorAll('span[data-qr]');
+                for (let badge of badges) {
+                    if (badge.dataset.qr === codigoQr && !badge.classList.contains("badge-activo")) {
+                        badge.textContent = "✓ Asistió";
+                        badge.className = "badge badge-activo";
+                        const stat = document.getElementById("stat-asistieron");
+                        stat.textContent = parseInt(stat.textContent || "0") + 1;
+                        return;
+                    }
+                }
+            }
+
+            // ========== MODO IMAGEN (CON DEBUG) ==========
+            function leerArchivoQR(file) {
+                if (!file || !file.type.startsWith("image/")) {
+                    mostrarDebug("Archivo no es imagen: " + (file?.type || "null"));
+                    return;
+                }
+
+                mostrarDebug("Leyendo archivo: " + file.name + " (" + file.size + " bytes)");
+
+                const reader = new FileReader();
+                reader.onload = e => {
+                    mostrarDebug("Archivo cargado, analizando...");
+                    decodificarImagenRobusto(e.target.result);
+                };
+                reader.onerror = e => mostrarDebug("Error leyendo archivo: " + e);
+                reader.readAsDataURL(file);
+            }
+
+            function onDrop(e) {
+                e.preventDefault();
+                document.getElementById("zona-pegar").classList.remove("drag-over");
+                const file = e.dataTransfer.files[0];
+                if (file) leerArchivoQR(file);
+            }
+
+            function mostrarDebug(msg) {
+                const div = document.getElementById("debug-info");
+                div.innerHTML += "<div>" + new Date().toLocaleTimeString() + ": " + msg + "</div>";
+                console.log("[QR Debug]", msg);
+            }
+
+            function decodificarImagenRobusto(src) {
+                const zona = document.getElementById("zona-pegar");
+                const canvas = document.getElementById("qr-canvas");
+                const img = new Image();
+
+                img.onload = () => {
+                    mostrarDebug("Imagen: " + img.width + "x" + img.height);
+
+                    // Múltiples intentos con diferentes escalas
+                    const escalas = [1, 1.5, 2, 0.8];
+                    let codigoDetectado = null;
+
+                    for (let escala of escalas) {
+                        const w = Math.floor(img.width * escala);
+                        const h = Math.floor(img.height * escala);
+
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext("2d");
+                        ctx.imageSmoothingEnabled = false;
+                        ctx.drawImage(img, 0, 0, w, h);
+
+                        const imageData = ctx.getImageData(0, 0, w, h);
+                        mostrarDebug("Probando escala " + escala + " (" + w + "x" + h + ")");
+
+                        // Intentar con jsQR
+                        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                            inversionAttempts: "attemptBoth"
+                        });
+
+                        if (code?.data) {
+                            mostrarDebug("¡Detectado con escala " + escala + "!");
+                            codigoDetectado = code.data;
+                            break;
+                        }
+                    }
+
+                    if (codigoDetectado) {
+                        zona.style.borderColor = "#16a34a";
+                        zona.innerHTML = `<div class="zona-icon">✅</div><p style="color:#16a34a;font-size:0.9rem">Detectado: ${codigoDetectado.substring(0, 25)}...</p>`;
+                        registrarAsistencia(codigoDetectado);
+                    } else {
+                        // Último intento: mostrar imagen para escaneo manual
+                        zona.style.borderColor = "#f59e0b";
+                        zona.innerHTML = `
+                    <div class="zona-icon">⚠️</div>
+                    <p style="color:#b45309">No se pudo leer automáticamente</p>
+                    <p style="font-size:0.8rem;color:#666">Intenta ingresar el código manualmente</p>
+                    <div style="margin-top:10px">
+                        <img src="${src}" style="max-width:200px;border:2px solid #ccc;border-radius:8px">
+                    </div>
+                    <p style="font-size:0.7rem;color:#666;margin-top:5px">
+                        O copia el código UUID de "Mis Inscripciones"
+                    </p>
+                `;
+                    }
+                };
+
+                img.onerror = (e) => {
+                    mostrarDebug("Error cargando imagen");
+                    zona.innerHTML = `<div class="zona-icon">❌</div><p>Error cargando imagen</p>`;
+                };
+
+                img.src = src;
+            }
+
+            // ========== MODO CÁMARA ==========
+            async function iniciarCamara() {
+                ultimoCodigo = null;
+                procesandoQR = false;
+
+                mostrarDebug("Iniciando cámara...");
+
+                try {
+                    streamCamara = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: { ideal: "environment" },
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
+                    });
+
+                    const video = document.getElementById("camara-video");
+                    video.srcObject = streamCamara;
+
+                    await new Promise(resolve => {
+                        video.onloadedmetadata = () => {
+                            video.play();
+                            resolve();
+                        };
+                    });
+
+                    mostrarDebug("Cámara iniciada: " + video.videoWidth + "x" + video.videoHeight);
+                    tickCamara();
+
+                } catch (err) {
+                    mostrarDebug("Error cámara: " + err.message);
+                    toast("No se pudo acceder a la cámara: " + err.message, "err");
+                    setTab("texto");
+                }
+            }
+
+            function tickCamara() {
+                if (!streamCamara) return;
+
+                const video = document.getElementById("camara-video");
+                const canvas = document.getElementById("camara-canvas");
+
+                if (video.readyState < video.HAVE_ENOUGH_DATA) {
+                    rafCamara = requestAnimationFrame(tickCamara);
+                    return;
+                }
+
+                // Procesar cada 10 frames para no sobrecargar
+                if (!window.frameCounter) window.frameCounter = 0;
+                window.frameCounter++;
+                if (window.frameCounter % 10 !== 0) {
+                    rafCamara = requestAnimationFrame(tickCamara);
+                    return;
+                }
+
+                const w = video.videoWidth;
+                const h = video.videoHeight;
+                canvas.width = w;
+                canvas.height = h;
+
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(video, 0, 0, w, h);
+
+                // Solo analizar región central (donde suele estar el QR)
+                const regionSize = Math.min(w, h) * 0.6;
+                const x = (w - regionSize) / 2;
+                const y = (h - regionSize) / 2;
+
+                try {
+                    const imageData = ctx.getImageData(x, y, regionSize, regionSize);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "attemptBoth"
+                    });
+
+                    if (code?.data && code.data !== ultimoCodigo && !procesandoQR) {
+                        mostrarDebug("QR detectado en cámara: " + code.data.substring(0, 20) + "...");
+                        ultimoCodigo = code.data;
+                        procesandoQR = true;
+
+                        // Pausar cámara temporalmente
+                        detenerCamara();
+
+                        registrarAsistencia(code.data).finally(() => {
+                            procesandoQR = false;
+                            // Reiniciar cámara después de 3 segundos
+                            setTimeout(() => {
+                                ultimoCodigo = null;
+                                if (document.getElementById("modo-camara").style.display !== "none") {
+                                    iniciarCamara();
+                                }
+                            }, 3000);
+                        });
+                    }
+                } catch (e) {
+                    // Ignorar errores de análisis
+                }
+
+                rafCamara = requestAnimationFrame(tickCamara);
+            }
+
+            function detenerCamara() {
+                if (rafCamara) {
+                    cancelAnimationFrame(rafCamara);
+                    rafCamara = null;
+                }
+                if (streamCamara) {
+                    streamCamara.getTracks().forEach(t => t.stop());
+                    streamCamara = null;
+                }
+                mostrarDebug("Cámara detenida");
+            }
+
+            // ========== UTILIDADES ==========
+            function toast(msg, tipo = "ok") {
+                const t = document.getElementById("toast");
+                t.textContent = msg;
+                t.className = `toast toast-${tipo} show`;
+                setTimeout(() => t.className = "toast", 3000);
+            }
+
+            document.getElementById("qr-input")?.addEventListener("keypress", e => {
+                if (e.key === "Enter") registrarAsistencia();
+            });
+
+            // Paste en modo texto
+            document.addEventListener("paste", function(e) {
+                if (document.getElementById("modo-texto").style.display === "none") return;
+
+                const items = e.clipboardData?.items ?? [];
+                for (const item of items) {
+                    if (item.type.startsWith("image/")) {
+                        e.preventDefault();
+                        leerArchivoQR(item.getAsFile());
+                        return;
+                    }
+                }
+            });
+
+            window.addEventListener("beforeunload", detenerCamara);
+        </script>
 
         <!-- ── Tabla de inscritos ── -->
         <div class="table-wrap">
@@ -353,8 +654,8 @@
 </div>
 
 <div class="toast" id="toast"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
     let streamCamara = null;
     let rafCamara    = null;
