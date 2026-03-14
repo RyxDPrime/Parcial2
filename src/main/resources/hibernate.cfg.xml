@@ -5,8 +5,8 @@
 <hibernate-configuration>
     <session-factory>
         <property name="hibernate.connection.driver_class">org.h2.Driver</property>
-        <!-- URL por defecto para desarrollo local -->
-        <property name="hibernate.connection.url">jdbc:h2:tcp://localhost:9092/~/eventos_db</property>
+        <!-- Default URL works in Docker and can be overridden via DB_URL env var in HibernateUtil -->
+        <property name="hibernate.connection.url">jdbc:h2:file:/app/data/eventos_db</property>
         <property name="hibernate.connection.username">sa</property>
         <property name="hibernate.connection.password"></property>
 

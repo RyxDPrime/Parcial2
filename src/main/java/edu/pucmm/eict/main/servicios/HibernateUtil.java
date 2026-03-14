@@ -12,13 +12,20 @@ public class HibernateUtil {
 
     public static synchronized SessionFactory getSessionFactory() {
         if (sessionFactory == null || sessionFactory.isClosed()) {
-            String dbPath = System.getenv("H2_DB_PATH");
+            String dbUrl = System.getenv("DB_URL");
+            String dbUser = System.getenv("DB_USER");
+            String dbPassword = System.getenv("DB_PASSWORD");
 
             Configuration config = new Configuration().configure("hibernate.cfg.xml");
 
-            if (dbPath != null && !dbPath.isBlank()) {
-                config.setProperty("hibernate.connection.url",
-                        "jdbc:h2:tcp://localhost:9092/" + dbPath);
+            if (dbUrl != null && !dbUrl.isBlank()) {
+                config.setProperty("hibernate.connection.url", dbUrl);
+            }
+            if (dbUser != null && !dbUser.isBlank()) {
+                config.setProperty("hibernate.connection.username", dbUser);
+            }
+            if (dbPassword != null) {
+                config.setProperty("hibernate.connection.password", dbPassword);
             }
 
             sessionFactory = config.buildSessionFactory();

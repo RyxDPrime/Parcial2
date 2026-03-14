@@ -1,18 +1,17 @@
 services:
 
   web-app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ryxd/parcial2-eventos:latest
     container_name: parcial2-javalin
-    expose:
-      - "7070"
-      - "8082"
+    ports:
+      - "7070:7070"
     volumes:
       - ./h2data:/app/data
     environment:
       - JAVA_OPTS=-Xmx512m -Xms256m
-      - H2_DB_PATH=/app/data/eventos_db
+      - DB_URL=jdbc:h2:file:/app/data/eventos_db
+      - DB_USER=sa
+      - DB_PASSWORD=
     restart: always
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:7070/login"]
