@@ -472,6 +472,12 @@ public class Main {
                 }
             });
 
+            // ── INSCRIPCIONES ──────────────────────────────────────────────
+// Imports adicionales necesarios:
+// import edu.pucmm.eict.main.modelos.Inscripcion;
+// import edu.pucmm.eict.main.servicios.QRServices;
+
+// ── INSCRIBIRSE A UN EVENTO ────────────────────────────────────
             config.routes.post("/inscripciones", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
                 if (u == null) {
@@ -497,6 +503,7 @@ public class Main {
                         return;
                     }
 
+                    // Verificar inscripción duplicada
                     Long yaInscrito = session.createQuery(
                                     "SELECT COUNT(i) FROM Inscripcion i WHERE i.usuario.id = :uid AND i.evento.id = :eid", Long.class)
                             .setParameter("uid", u.getId())
@@ -508,6 +515,7 @@ public class Main {
                         return;
                     }
 
+                    // Verificar cupo disponible
                     Long inscritos = session.createQuery(
                                     "SELECT COUNT(i) FROM Inscripcion i WHERE i.evento.id = :eid", Long.class)
                             .setParameter("eid", eventoId)
@@ -518,6 +526,7 @@ public class Main {
                         return;
                     }
 
+                    // Crear inscripción (el constructor genera el UUID del QR automáticamente)
                     Usuario participante = session.find(Usuario.class, u.getId());
                     Inscripcion inscripcion = new Inscripcion(participante, evento);
 
@@ -534,16 +543,11 @@ public class Main {
                 }
             });
 
+// ── MIS INSCRIPCIONES (participante) ──────────────────────────
             config.routes.get("/mis-inscripciones", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
-                if (u == null) {
-                    ctx.redirect("/login");
-                    return;
-                }
-                if (u.getRol() != Rol.PARTICIPANTE) {
-                    ctx.redirect("/eventos");
-                    return;
-                }
+                if (u == null) { ctx.redirect("/login"); return; }
+                if (u.getRol() != Rol.PARTICIPANTE) { ctx.redirect("/eventos"); return; }
 
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     List<Inscripcion> inscripciones = session.createQuery(
@@ -552,16 +556,14 @@ public class Main {
                             .setParameter("uid", u.getId())
                             .getResultList();
 
-                    ctx.render("Mis-Inscripciones.html", Map.of("inscripciones", inscripciones, "usuario", u));
+                    ctx.render("mis-inscripciones.html", Map.of("inscripciones", inscripciones, "usuario", u));
                 }
             });
 
+// ── CANCELAR INSCRIPCIÓN ───────────────────────────────────────
             config.routes.delete("/inscripciones/{id}", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
-                if (u == null) {
-                    ctx.status(401).json(Map.of("error", "No autenticado"));
-                    return;
-                }
+                if (u == null) { ctx.status(401).json(Map.of("error", "No autenticado")); return; }
 
                 Long id = Long.parseLong(ctx.pathParam("id"));
 
@@ -572,17 +574,17 @@ public class Main {
                         ctx.status(404).json(Map.of("error", "Inscripción no encontrada"));
                         return;
                     }
-
+                    // Solo el propio participante puede cancelar su inscripción
                     if (!inscripcion.getUsuario().getId().equals(u.getId())) {
                         ctx.status(403).json(Map.of("error", "No autorizado"));
                         return;
                     }
-
+                    // No se puede cancelar si el evento ya fue finalizado
                     if (inscripcion.getEvento().getEstado() == EstadoEvento.FINALIZADO) {
                         ctx.status(400).json(Map.of("error", "No se puede cancelar una inscripción de un evento finalizado"));
                         return;
                     }
-
+                    // FIX: no se puede cancelar si ya se registró asistencia
                     if (inscripcion.isAsistencia()) {
                         ctx.status(400).json(Map.of("error", "No se puede cancelar una inscripción con asistencia registrada"));
                         return;
@@ -596,32 +598,29 @@ public class Main {
                 }
             });
 
+// ── VER QR DE UNA INSCRIPCIÓN ──────────────────────────────────
             config.routes.get("/inscripciones/{id}/qr", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
-                if (u == null) {
-                    ctx.redirect("/login");
-                    return;
-                }
+                if (u == null) { ctx.redirect("/login"); return; }
 
                 Long id = Long.parseLong(ctx.pathParam("id"));
 
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     Inscripcion inscripcion = session.find(Inscripcion.class, id);
 
-                    if (inscripcion == null) {
-                        ctx.status(404).result("No encontrado");
-                        return;
-                    }
+                    if (inscripcion == null) { ctx.status(404).result("No encontrado"); return; }
                     if (!inscripcion.getUsuario().getId().equals(u.getId())) {
                         ctx.status(403).result("No autorizado");
                         return;
                     }
 
+                    // Devolver imagen PNG del QR directamente
                     byte[] qr = QRServices.generarQRBytes(inscripcion.getCodigoQr());
                     ctx.contentType("image/png").result(qr);
                 }
             });
 
+// ── LISTA DE INSCRIPCIONES POR EVENTO (admin/organizador) ──────
             config.routes.get("/admin/eventos/{id}/inscripciones", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
                 if (u == null || (u.getRol() != Rol.ADMIN && u.getRol() != Rol.ORGANIZADOR)) {
@@ -633,10 +632,7 @@ public class Main {
 
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     Evento evento = session.find(Evento.class, eventoId);
-                    if (evento == null) {
-                        ctx.status(404).result("Evento no encontrado");
-                        return;
-                    }
+                    if (evento == null) { ctx.status(404).result("Evento no encontrado"); return; }
 
                     List<Inscripcion> inscripciones = session.createQuery(
                                     "FROM Inscripcion i JOIN FETCH i.usuario WHERE i.evento.id = :eid ORDER BY i.id",
@@ -645,9 +641,9 @@ public class Main {
                             .getResultList();
 
                     long totalInscritos = inscripciones.size();
-                    long asistieron = inscripciones.stream().filter(Inscripcion::isAsistencia).count();
+                    long asistieron    = inscripciones.stream().filter(Inscripcion::isAsistencia).count();
 
-                    ctx.render("Admin-Inscripciones.html", Map.of(
+                    ctx.render("admin-inscripciones.html", Map.of(
                             "evento", evento,
                             "inscripciones", inscripciones,
                             "totalInscritos", totalInscritos,
@@ -657,15 +653,23 @@ public class Main {
                 }
             });
 
+// ── MARCAR ASISTENCIA (escaneo QR) ────────────────────────────
             config.routes.post("/admin/asistencia", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
                 if (u == null || (u.getRol() != Rol.ADMIN && u.getRol() != Rol.ORGANIZADOR)) {
                     ctx.status(401).json(Map.of("error", "No autorizado"));
                     return;
                 }
+                @SuppressWarnings("unchecked")
+                Map<String, Object> body = ctx.bodyAsClass(Map.class);
 
-                String codigoQr = ctx.bodyAsClass(Map.class).get("codigoQr").toString();
+                String codigoQr = body.get("codigoQr") != null ? body.get("codigoQr").toString().trim() : null;
+                Long eventoIdEsperado = body.get("eventoId") != null ? Long.parseLong(body.get("eventoId").toString()) : null;
 
+                if (codigoQr == null || codigoQr.isEmpty()) {
+                    ctx.status(400).json(Map.of("error", "Código QR requerido"));
+                    return;
+                }
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     List<Inscripcion> resultado = session.createQuery(
                                     "FROM Inscripcion i JOIN FETCH i.usuario JOIN FETCH i.evento WHERE i.codigoQr = :qr",
@@ -681,6 +685,17 @@ public class Main {
                     Inscripcion inscripcion = resultado.getFirst();
                     Evento evento = inscripcion.getEvento();
 
+                    // FIX: validar que el QR pertenece al evento desde donde se escanea
+                    Object eventoIdObj = body.get("eventoId");
+                    if (eventoIdObj != null) {
+                        if (!evento.getId().equals(eventoIdEsperado)) {
+                            ctx.status(400).json(Map.of("error",
+                                    "Este QR pertenece al evento \"" + evento.getTitulo() + "\" y no a este evento"));
+                            return;
+                        }
+                    }
+
+                    // FIX: verificar que las puertas estén abiertas (horasApertura antes del evento)
                     if (!evento.isPuertasAbiertas()) {
                         long minutosRestantes = java.time.Duration.between(
                                 LocalDateTime.now(),
@@ -691,6 +706,7 @@ public class Main {
                         return;
                     }
 
+                    // FIX: verificar que el usuario no esté bloqueado
                     if (inscripcion.getUsuario().isBloqueado()) {
                         ctx.status(403).json(Map.of("error",
                                 "El participante " + inscripcion.getUsuario().getUsername() + " está bloqueado y no puede registrar asistencia"));
@@ -720,45 +736,41 @@ public class Main {
                 }
             });
 
+// ── RESUMEN / ESTADÍSTICAS DEL EVENTO ─────────────────────────
             config.routes.get("/admin/eventos/{id}/resumen", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
                 if (u == null || (u.getRol() != Rol.ADMIN && u.getRol() != Rol.ORGANIZADOR)) {
-                    ctx.redirect("/login");
-                    return;
+                    ctx.redirect("/login"); return;
                 }
                 Long id = Long.parseLong(ctx.pathParam("id"));
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     Evento evento = session.find(Evento.class, id);
-                    if (evento == null) {
-                        ctx.status(404).result("No encontrado");
-                        return;
-                    }
+                    if (evento == null) { ctx.status(404).result("No encontrado"); return; }
                     ctx.render("Admin-Evento-Resumen.html", Map.of("evento", evento, "usuario", u));
                 }
             });
 
+// ── API: datos de estadísticas (Fetch desde el frontend) ───────
             config.routes.get("/admin/eventos/{id}/stats", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
                 if (u == null || (u.getRol() != Rol.ADMIN && u.getRol() != Rol.ORGANIZADOR)) {
-                    ctx.status(401).json(Map.of("error", "No autorizado"));
-                    return;
+                    ctx.status(401).json(Map.of("error", "No autorizado")); return;
                 }
                 Long id = Long.parseLong(ctx.pathParam("id"));
                 try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                     Evento evento = session.find(Evento.class, id);
-                    if (evento == null) {
-                        ctx.status(404).json(Map.of("error", "No encontrado"));
-                        return;
-                    }
+                    if (evento == null) { ctx.status(404).json(Map.of("error", "No encontrado")); return; }
 
                     List<Inscripcion> inscripciones = session.createQuery(
                                     "FROM Inscripcion i WHERE i.evento.id = :eid", Inscripcion.class)
                             .setParameter("eid", id).getResultList();
 
-                    long totalInscritos = inscripciones.size();
-                    long totalAsistentes = inscripciones.stream().filter(Inscripcion::isAsistencia).count();
-                    double porcentaje = totalInscritos > 0 ? (totalAsistentes * 100.0 / totalInscritos) : 0;
+                    long totalInscritos   = inscripciones.size();
+                    long totalAsistentes  = inscripciones.stream().filter(Inscripcion::isAsistencia).count();
+                    double porcentaje     = totalInscritos > 0 ? (totalAsistentes * 100.0 / totalInscritos) : 0;
 
+                    // ── Inscripciones por día ───────────────────────────────
+                    // Agrupar por fecha (yyyy-MM-dd) de fechaInscripcion
                     java.util.TreeMap<String, Long> mapDia = new java.util.TreeMap<>();
                     java.time.format.DateTimeFormatter fmtDia = java.time.format.DateTimeFormatter.ofPattern("dd/MM");
                     for (Inscripcion i : inscripciones) {
@@ -768,14 +780,11 @@ public class Main {
                         }
                     }
                     List<Map<String, Object>> porDia = mapDia.entrySet().stream()
-                            .map(e2 -> {
-                                Map<String, Object> m = new HashMap<>();
-                                m.put("fecha", e2.getKey());
-                                m.put("total", e2.getValue());
-                                return m;
-                            })
+                            .map(e2 -> { Map<String, Object> m = new HashMap<>(); m.put("fecha", e2.getKey()); m.put("total", e2.getValue()); return m; })
                             .collect(java.util.stream.Collectors.toList());
 
+                    // ── Asistencia por hora ─────────────────────────────────
+                    // Agrupar por hora (0–23) de horaAsistencia
                     java.util.TreeMap<Integer, Long> mapHora = new java.util.TreeMap<>();
                     for (Inscripcion i : inscripciones) {
                         if (i.isAsistencia() && i.getHoraAsistencia() != null) {
@@ -784,22 +793,17 @@ public class Main {
                         }
                     }
                     List<Map<String, Object>> porHora = mapHora.entrySet().stream()
-                            .map(e2 -> {
-                                Map<String, Object> m = new HashMap<>();
-                                m.put("hora", e2.getKey());
-                                m.put("total", e2.getValue());
-                                return m;
-                            })
+                            .map(e2 -> { Map<String, Object> m = new HashMap<>(); m.put("hora", e2.getKey()); m.put("total", e2.getValue()); return m; })
                             .collect(java.util.stream.Collectors.toList());
 
                     Map<String, Object> stats = new HashMap<>();
-                    stats.put("totalInscritos", totalInscritos);
-                    stats.put("totalAsistentes", totalAsistentes);
-                    stats.put("porcentaje", Math.round(porcentaje * 10.0) / 10.0);
-                    stats.put("cupoMaximo", evento.getCupoMaximo());
-                    stats.put("disponibles", evento.getCupoMaximo() - totalInscritos);
-                    stats.put("inscripcionesPorDia", porDia);
-                    stats.put("asistenciaPorHora", porHora);
+                    stats.put("totalInscritos",       totalInscritos);
+                    stats.put("totalAsistentes",      totalAsistentes);
+                    stats.put("porcentaje",           Math.round(porcentaje * 10.0) / 10.0);
+                    stats.put("cupoMaximo",           evento.getCupoMaximo());
+                    stats.put("disponibles",          evento.getCupoMaximo() - totalInscritos);
+                    stats.put("inscripcionesPorDia",  porDia);
+                    stats.put("asistenciaPorHora",    porHora);
 
                     ctx.json(stats);
                 }

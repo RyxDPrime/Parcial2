@@ -2,38 +2,98 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inscripciones — Admin</title>
-    <link href="/Style.css" rel="stylesheet">
+    <link rel="stylesheet" href="/Style.css">
     <style>
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.8rem;
-        }
-
-        .stat-card {
+        /* ── Tarjeta resumen del evento ── */
+        .evento-resumen-card {
             background: var(--blanco);
             border: 1px solid var(--borde);
             border-radius: var(--radio-lg);
-            padding: 1.2rem 1.4rem;
             box-shadow: var(--sombra);
+            margin-bottom: 1.8rem;
+            overflow: hidden;
         }
-
-        .stat-card .stat-num {
+        .evento-card-header {
+            padding: 1.2rem 1.6rem;
+            background: var(--azul);
+            color: #fff;
+        }
+        .evento-card-header h3 {
             font-family: 'DM Serif Display', serif;
-            font-size: 2rem;
+            font-size: 1.2rem;
+            margin: 0 0 0.4rem 0;
+            color: #fff;
+        }
+        .evento-meta-header {
+            display: flex;
+            gap: 1.2rem;
+            font-size: 0.82rem;
+            opacity: 0.88;
+            flex-wrap: wrap;
+        }
+        .evento-card-body {
+            padding: 1.4rem 1.6rem;
+        }
+        .evento-desc {
+            color: var(--texto-sub);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+        /* Stats en fila */
+        .stats-inline {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--fondo);
+            border-radius: 8px;
+        }
+        .stats-inline .stat-item .stat-num {
+            font-size: 1.3rem;
+            font-weight: 700;
             color: var(--azul);
             line-height: 1;
         }
-
-        .stat-card .stat-label {
+        .stats-inline .stat-item .stat-num.verde { color: #16a34a; }
+        .stats-inline .stat-item .stat-num.neutro { color: var(--texto); }
+        .stats-inline .stat-item .stat-lbl {
+            font-size: 0.72rem;
+            color: var(--texto-muted);
+            margin-top: 3px;
+        }
+        /* Barra de ocupación */
+        .progress-bar {
+            height: 7px;
+            background: var(--borde);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width .4s ease;
+        }
+        .ocupacion-label {
+            display: flex;
+            justify-content: space-between;
             font-size: 0.8rem;
             color: var(--texto-muted);
-            margin-top: 4px;
+            margin-bottom: 4px;
         }
+        /* Botones de acción rápida */
+        .acciones-rapidas {
+            display: flex;
+            gap: 8px;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .acciones-rapidas .btn { flex: 1; min-width: 120px; font-size: 0.88rem; }
+        .acciones-rapidas .btn-icon { flex: 0; width: auto; padding: 8px 12px; }
 
+        /* ── Scanner ── */
         .scanner-card {
             background: var(--blanco);
             border: 1px solid var(--borde);
@@ -43,209 +103,48 @@
             margin-bottom: 1.8rem;
             border-left: 4px solid var(--azul);
         }
-
-        .scanner-card h3 {
-            font-size: 1.05rem;
-            margin-bottom: 1rem;
-        }
-
-        .scanner-input-row {
-            display: flex;
-            gap: 8px;
-        }
-
+        .scanner-card h3 { font-size: 1.05rem; margin-bottom: 1rem; }
+        .scanner-input-row { display: flex; gap: 8px; }
         .scanner-input-row input {
-            flex: 1;
-            border: 1.5px solid var(--borde);
-            border-radius: var(--radio);
-            padding: 10px 14px;
-            font-size: 0.93rem;
-            color: var(--texto);
-            background: var(--fondo);
-            outline: none;
-            transition: var(--t);
+            flex: 1; border: 1.5px solid var(--borde); border-radius: var(--radio);
+            padding: 10px 14px; font-size: 0.93rem; color: var(--texto);
+            background: var(--fondo); outline: none; transition: var(--t);
         }
-
-        .scanner-input-row input:focus {
-            border-color: var(--azul);
-            background: var(--blanco);
-        }
-
+        .scanner-input-row input:focus { border-color: var(--azul); background: var(--blanco); }
         .scanner-result {
-            margin-top: 1rem;
-            padding: 12px 16px;
-            border-radius: var(--radio);
-            font-size: 0.9rem;
-            font-weight: 600;
-            display: none;
+            margin-top: 1rem; padding: 12px 16px; border-radius: var(--radio);
+            font-size: 0.9rem; font-weight: 600; display: none;
         }
-
-        .scanner-result.ok {
-            background: #f0fdf4;
-            border: 1px solid #86efac;
-            color: #16a34a;
-        }
-
-        .scanner-result.err {
-            background: #fef2f2;
-            border: 1px solid #fca5a5;
-            color: #dc2626;
-        }
-
-        .scanner-result.dup {
-            background: #fffbeb;
-            border: 1px solid #fde68a;
-            color: #b45309;
-        }
-
+        .scanner-result.ok  { background: #f0fdf4; border: 1px solid #86efac; color: #16a34a; }
+        .scanner-result.err { background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626; }
+        .scanner-result.dup { background: #fffbeb; border: 1px solid #fde68a; color: #b45309; }
         .scanner-tab {
-            padding: 6px 14px;
-            font-size: 0.82rem;
-            font-weight: 600;
+            padding: 6px 14px; font-size: 0.82rem; font-weight: 600;
             font-family: 'DM Sans', sans-serif;
-            border: 1.5px solid var(--borde);
-            border-radius: 8px;
-            background: var(--fondo);
-            color: var(--texto-sub);
-            cursor: pointer;
+            border: 1.5px solid var(--borde); border-radius: 8px;
+            background: var(--fondo); color: var(--texto-sub); cursor: pointer;
             transition: var(--t);
         }
+        .scanner-tab:hover { border-color: var(--azul); color: var(--azul); }
+        .scanner-tab.activo { background: var(--azul-suave); border-color: var(--azul); color: var(--azul); }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+        .badge-activo { background: #dcfce7; color: #166534; }
+        .badge-prot   { background: #f3f4f6; color: #374151; }
+        .badge-estado { background: rgba(255,255,255,0.2); color: #fff; font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; }
 
-        .scanner-tab:hover {
-            border-color: var(--azul);
-            color: var(--azul);
-        }
-
-        .scanner-tab.activo {
-            background: var(--azul-suave);
-            border-color: var(--azul);
-            color: var(--azul);
-        }
-
-        .scanner-tab:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .badge {
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .badge-activo {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .badge-prot {
-            background: #f3f4f6;
-            color: #374151;
-        }
-
+        /* Zona de pegado */
         #zona-pegar {
-            border: 2px dashed var(--borde);
-            border-radius: var(--radio);
-            padding: 2rem 1rem;
-            text-align: center;
-            cursor: pointer;
-            transition: border-color .2s, background .2s;
-            user-select: none;
-            outline: none;
+            border: 2px dashed var(--borde); border-radius: var(--radio);
+            padding: 2rem 1rem; text-align: center; cursor: pointer;
+            transition: border-color .2s, background .2s; user-select: none;
         }
+        #zona-pegar:hover, #zona-pegar.drag-over { border-color: var(--azul); background: var(--azul-suave); }
+        #zona-pegar .zona-icon { font-size: 2rem; margin-bottom: 0.4rem; }
+        #zona-pegar p { font-size: 0.88rem; color: var(--texto-sub); margin: 0; }
 
-        #zona-pegar:hover, #zona-pegar.drag-over, #zona-pegar:focus {
-            border-color: var(--azul);
-            background: var(--azul-suave);
-        }
-
-        #zona-pegar .zona-icon {
-            font-size: 2rem;
-            margin-bottom: 0.4rem;
-        }
-
-        #zona-pegar p {
-            font-size: 0.88rem;
-            color: var(--texto-sub);
-            margin: 0;
-        }
-
-        .camara-container {
-            position: relative;
-            max-width: 420px;
-            margin: 0 auto;
-            background: #000;
-            border-radius: var(--radio);
-            overflow: hidden;
-        }
-
-        #camara-video {
-            width: 100%;
-            height: auto;
-            display: block;
-            min-height: 280px;
-        }
-
-        .camara-overlay {
-            position: absolute;
-            inset: 0;
-            border: 3px solid var(--azul);
-            border-radius: var(--radio);
-            pointer-events: none;
-            opacity: 0.6;
-            transition: all 0.3s;
-        }
-
-        .camara-overlay.detected {
-            border-color: #16a34a;
-            opacity: 1;
-            box-shadow: 0 0 20px rgba(22, 163, 74, 0.5);
-        }
-
-        .camara-hint {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            pointer-events: none;
-        }
-
-        .camara-detenida {
-            text-align: center;
-            padding: 3rem;
-            color: var(--texto-muted);
-        }
-
-        .debug-info {
-            font-size: 0.75rem;
-            color: var(--texto-muted);
-            margin-top: 0.5rem;
-            font-family: monospace;
-            text-align: center;
-        }
-
-        .jsqr-error {
-            background: #fef2f2;
-            border: 1px solid #fca5a5;
-            color: #dc2626;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
-        }
-
-        .jsqr-error button {
-            margin-top: 0.5rem;
-            margin-right: 0.5rem;
-            padding: 0.4rem 0.8rem;
-            cursor: pointer;
-        }
+        #camara-video { width: 100%; max-width: 420px; border-radius: var(--radio); background: #000; display: block; margin: 0 auto; }
+        .camara-frame { position: relative; width: 100%; max-width: 420px; margin: 0 auto; display: block; }
+        .camara-overlay { position: absolute; inset: 0; border: 3px solid var(--azul); border-radius: var(--radio); pointer-events: none; opacity: 0.5; }
     </style>
 </head>
 <body>
@@ -259,9 +158,7 @@
 
         <div class="sidebar-user" th:if="${session.usuario != null}">
             <div class="sidebar-user-avatar"
-                 th:text="${session.usuario.username != null ? session.usuario.username.substring(0,1).toUpperCase() : 'U'}">
-                A
-            </div>
+                 th:text="${session.usuario.username != null ? session.usuario.username.substring(0,1).toUpperCase() : 'U'}">A</div>
             <div class="sidebar-user-info">
                 <div class="sidebar-user-name" th:text="${session.usuario.username}">admin</div>
                 <span class="tag-rol" th:text="${session.usuario.rol}">Admin</span>
@@ -271,70 +168,119 @@
         <nav class="sidebar-nav">
             <th:block th:if="${session.usuario != null and session.usuario.rol.name() == 'ADMIN'}">
                 <span class="sidebar-label">Administración</span>
-                <a class="sidebar-link" href="/admin/usuarios">
+                <a href="/admin/usuarios" class="sidebar-link">
                     <span class="icon">👥</span> Usuarios
                 </a>
             </th:block>
             <span class="sidebar-label">General</span>
-            <a class="sidebar-link" href="/admin/eventos">
+            <a href="/admin/eventos" class="sidebar-link">
                 <span class="icon">📅</span> Gestión Eventos
             </a>
-            <a class="sidebar-link activo"
-               style="padding-left:2.4rem; font-size:.85rem" th:href="@{/admin/eventos/{id}/inscripciones(id=${evento.id})}">
+            <a th:href="@{/admin/eventos/{id}/inscripciones(id=${evento.id})}"
+               class="sidebar-link activo" style="padding-left:2.4rem; font-size:.85rem">
                 <span class="icon">↳</span> Inscripciones
             </a>
-            <span class="sidebar-label">Gestiones</span>
-            <a class="sidebar-link" href="/eventos">
+            <span class="sidebar-label">Gestion</span>
+            <a href="/eventos" class="sidebar-link">
                 <span class="icon">🌐</span> Ver Eventos
             </a>
         </nav>
 
         <div class="sidebar-footer">
-            <a class="sidebar-logout" href="/logout"><span class="icon">→</span> Cerrar Sesión</a>
+            <a href="/logout" class="sidebar-logout"><span class="icon">→</span> Cerrar Sesión</a>
         </div>
     </aside>
 
     <main class="content">
         <div class="page-header">
             <div>
-                <h2 th:text="${evento.titulo}">Evento</h2>
-                <p th:text="'Control de Asistencia · ' + ${#temporals.format(evento.fechaHora,'dd MMM yyyy, HH:mm')} + ' · ' + ${evento.lugar}"></p>
+                <h2>Control de Asistencia</h2>
+                <p>Gestiona los inscritos y registra asistencia por QR</p>
             </div>
-            <a class="btn btn-ghost btn-sm" href="/admin/eventos" style="width:auto">← Volver</a>
+            <a href="/admin/eventos" class="btn btn-ghost btn-sm" style="width:auto">← Volver</a>
         </div>
 
-        <div class="stats-row">
-            <div class="stat-card">
-                <div class="stat-num" th:text="${totalInscritos}">0</div>
-                <div class="stat-label">Inscritos</div>
+        <!-- ── Tarjeta resumen del evento ── -->
+        <div class="evento-resumen-card">
+            <div class="evento-card-header">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <h3 th:text="${evento.titulo}">Nombre del Evento</h3>
+                    <span class="badge-estado" th:text="${evento.estado}">PUBLICADO</span>
+                </div>
+                <div class="evento-meta-header">
+                    <span>📅 <span th:text="${#temporals.format(evento.fechaHora,'dd MMM yyyy, HH:mm')}"></span></span>
+                    <span>📍 <span th:text="${evento.lugar}"></span></span>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-num" id="stat-asistieron" th:text="${asistieron}">0</div>
-                <div class="stat-label">Asistieron</div>
+
+            <div class="evento-card-body">
+                <p class="evento-desc" th:text="${evento.descripcion}"></p>
+
+                <!-- Stats en fila -->
+                <div class="stats-inline">
+                    <div class="stat-item">
+                        <div class="stat-num" th:text="${totalInscritos}">0</div>
+                        <div class="stat-lbl">Inscritos</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-num verde" id="stat-asistieron" th:text="${asistieron}">0</div>
+                        <div class="stat-lbl">Asistieron</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-num neutro" th:text="${evento.cupoMaximo}">0</div>
+                        <div class="stat-lbl">Cupo total</div>
+                    </div>
+                </div>
+
+                <!-- Barra de ocupación -->
+                <div th:with="pct=${evento.cupoMaximo > 0 ? (totalInscritos * 100 / evento.cupoMaximo) : 0}">
+                    <div class="ocupacion-label">
+                        <span>Ocupación</span>
+                        <span th:text="${pct} + '%'">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill"
+                             th:style="'width:' + ${pct} + '%; background:' + (${pct >= 90} ? '#dc2626' : (${pct >= 60} ? '#f59e0b' : '#2563eb'))">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="acciones-rapidas">
+                    <a th:href="@{/admin/eventos/{id}/inscripciones(id=${evento.id})}"
+                       class="btn btn-primary">
+                        👥 Control Asistencia
+                    </a>
+                    <a th:href="@{/admin/eventos/{id}/resumen(id=${evento.id})}"
+                       class="btn btn-ghost">
+                        📊 Ver Estadísticas
+                    </a>
+                    <a th:href="@{/admin/eventos/{id}/editar(id=${evento.id})}"
+                       class="btn btn-ghost btn-icon" title="Editar evento">
+                        ✏️
+                    </a>
+                </div>
             </div>
         </div>
 
+        <!-- Campo oculto con el ID del evento para validar QR -->
+        <input type="hidden" id="evento-id-hidden" th:value="${evento.id}">
+
+        <!-- ── Scanner QR ── -->
         <div class="scanner-card" th:if="${evento.estado.name() != 'BORRADOR'}">
             <h3>📷 Registrar Asistencia</h3>
 
-            <div class="jsqr-error" id="jsqr-error-msg" style="display:none">
-                <strong>⚠️ Error al cargar la librería QR</strong><br>
-                El escaneo de imágenes y cámara no estará disponible.<br>
-                <button onclick="location.reload()">Recargar</button>
-                <button onclick="intentarCargarJsQR()">Reintentar</button>
-            </div>
-
             <div style="display:flex; gap:6px; margin-bottom:1rem">
-                <button class="scanner-tab activo" id="tab-texto" onclick="setTab('texto')">✏️ Código</button>
-                <button class="scanner-tab" disabled id="tab-imagen" onclick="setTab('imagen')">🖼 Imagen</button>
-                <button class="scanner-tab" disabled id="tab-camara" onclick="setTab('camara')">📷 Cámara</button>
+                <button class="scanner-tab activo" id="tab-texto"  onclick="setTab('texto')">✏️ Código</button>
+                <button class="scanner-tab"        id="tab-imagen" onclick="setTab('imagen')">🖼 Imagen</button>
+                <button class="scanner-tab"        id="tab-camara" onclick="setTab('camara')">📷 Cámara</button>
             </div>
 
             <div id="modo-texto">
                 <div class="scanner-input-row">
-                    <input autocomplete="off" id="qr-input"
+                    <input id="qr-input" type="text"
                            placeholder="Escanea con lector físico o pega el UUID…"
-                           type="text">
+                           autocomplete="off">
                     <button class="btn btn-primary btn-sm" onclick="registrarAsistencia()" style="width:auto">
                         Registrar
                     </button>
@@ -342,39 +288,37 @@
             </div>
 
             <div id="modo-imagen" style="display:none">
-                <div id="zona-pegar" onclick="document.getElementById('file-input').click()"
-                     ondragleave="this.classList.remove('drag-over')"
+                <div id="zona-pegar"
+                     onclick="document.getElementById('file-input').click()"
                      ondragover="event.preventDefault(); this.classList.add('drag-over')"
-                     ondrop="onDrop(event)"
-                     tabindex="0">
+                     ondragleave="this.classList.remove('drag-over')"
+                     ondrop="onDrop(event)">
                     <div class="zona-icon">🖼</div>
-                    <p><strong>Clic</strong> para subir · <strong>Ctrl+V</strong> para pegar · <strong>Arrastra</strong>
-                        la imagen del QR</p>
-                    <input accept="image/*" id="file-input" onchange="leerArchivoQR(this.files[0])" style="display:none"
-                           type="file">
+                    <p><strong>Clic</strong> para subir · <strong>Ctrl+V</strong> para pegar · <strong>arrastra</strong> la imagen del QR</p>
+                    <input id="file-input" type="file" accept="image/*" style="display:none"
+                           onchange="leerArchivoQR(this.files[0])">
                 </div>
                 <canvas id="qr-canvas" style="display:none"></canvas>
-                <div class="debug-info" id="imagen-debug"></div>
             </div>
 
             <div id="modo-camara" style="display:none">
-                <div class="camara-container">
-                    <video autoplay id="camara-video" muted playsinline></video>
-                    <div class="camara-overlay" id="camara-overlay"></div>
-                    <div class="camara-hint" id="camara-hint">Apunta al código QR</div>
+                <div class="camara-frame">
+                    <video id="camara-video" autoplay playsinline muted></video>
+                    <div class="camara-overlay"></div>
                 </div>
                 <canvas id="camara-canvas" style="display:none"></canvas>
-                <div class="debug-info" id="camara-debug"></div>
-                <div style="text-align:center; margin-top:1rem">
-                    <button class="btn btn-ghost btn-sm" onclick="detenerCamara(); setTab('texto')" style="width:auto">
-                        ⏹ Detener cámara
-                    </button>
+                <p style="text-align:center; font-size:.82rem; color:var(--texto-muted); margin-top:.5rem">
+                    Apunta la cámara al código QR — se detecta automáticamente
+                </p>
+                <div style="text-align:center; margin-top:.5rem">
+                    <button class="btn btn-ghost btn-sm" onclick="setTab('texto')" style="width:auto">Detener cámara</button>
                 </div>
             </div>
 
             <div class="scanner-result" id="scanner-result"></div>
         </div>
 
+        <!-- ── Tabla de inscritos ── -->
         <div class="table-wrap">
             <table>
                 <thead>
@@ -391,9 +335,9 @@
                         th:text="${i.codigoQr}"></td>
                     <td style="text-align:center">
               <span class="badge"
-                    th:attr="data-qr=${i.codigoQr}"
                     th:classappend="${i.asistencia} ? 'badge-activo' : 'badge-prot'"
-                    th:text="${i.asistencia} ? '✓ Asistió' : 'Pendiente'">
+                    th:text="${i.asistencia} ? '✓ Asistió' : 'Pendiente'"
+                    th:attr="data-qr=${i.codigoQr}">
               </span>
                     </td>
                 </tr>
@@ -409,431 +353,181 @@
 </div>
 
 <div class="toast" id="toast"></div>
-
-<script>
-    const JSQR_SOURCES = [
-        'https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js',
-        'https://unpkg.com/jsqr@1.4.0/dist/jsQR.js',
-        'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js'
-    ];
-
-    async function cargarScript(url) {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = url;
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error('Failed to load ' + url));
-            document.head.appendChild(script);
-        });
-    }
-
-    async function intentarCargarJsQR() {
-        if (typeof jsQR !== 'undefined') {
-            console.log('jsQR ya estaba cargado');
-            habilitarTabs();
-            return;
-        }
-
-        for (const url of JSQR_SOURCES) {
-            try {
-                console.log('Intentando cargar jsQR desde:', url);
-                await cargarScript(url);
-                if (typeof jsQR !== 'undefined') {
-                    console.log('✅ jsQR cargado desde:', url);
-                    habilitarTabs();
-                    document.getElementById('jsqr-error-msg').style.display = 'none';
-                    return;
-                }
-            } catch (e) {
-                console.warn('❌ Falló:', url);
-            }
-        }
-
-        console.error('No se pudo cargar jsQR');
-        document.getElementById('jsqr-error-msg').style.display = 'block';
-    }
-
-    function habilitarTabs() {
-        document.getElementById('tab-imagen').disabled = false;
-        document.getElementById('tab-camara').disabled = false;
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', intentarCargarJsQR);
-    } else {
-        intentarCargarJsQR();
-    }
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 
 <script>
     let streamCamara = null;
-    let rafCamara = null;
+    let rafCamara    = null;
     let ultimoCodigo = null;
-    let procesando = false;
-    let frameCount = 0;
-    let tabActual = 'texto';
+    let procesandoQR = false;
 
     function setTab(tab) {
-        tabActual = tab;
-
-        document.getElementById('modo-texto').style.display = 'none';
-        document.getElementById('modo-imagen').style.display = 'none';
-        document.getElementById('modo-camara').style.display = 'none';
-
-        document.getElementById('tab-texto').classList.remove('activo');
-        document.getElementById('tab-imagen').classList.remove('activo');
-        document.getElementById('tab-camara').classList.remove('activo');
-
-        document.getElementById('tab-' + tab).classList.add('activo');
-
-        if (tab === 'texto') {
-            document.getElementById('modo-texto').style.display = 'block';
-            document.getElementById('qr-input').focus();
-            detenerCamara();
-        } else if (tab === 'imagen') {
-            document.getElementById('modo-imagen').style.display = 'block';
-            detenerCamara();
-        } else if (tab === 'camara') {
-            document.getElementById('modo-camara').style.display = 'block';
-            iniciarCamara();
-        }
+        ["texto","imagen","camara"].forEach(t => {
+            document.getElementById("modo-" + t).style.display = t === tab ? "block" : "none";
+            document.getElementById("tab-" + t).classList.toggle("activo", t === tab);
+        });
+        if (tab !== "camara") detenerCamara();
+        if (tab === "camara") iniciarCamara();
+        if (tab === "texto")  document.getElementById("qr-input").focus();
     }
 
     async function registrarAsistencia(codigoQr) {
-        const inputEl = document.getElementById('qr-input');
-        const codigo = codigoQr || (inputEl ? inputEl.value.trim() : '');
+        const inputEl = document.getElementById("qr-input");
+        const codigo  = codigoQr ?? inputEl.value.trim();
+        if (!codigo) return;
 
-        if (!codigo) {
-            console.warn('No hay código para registrar');
-            return;
-        }
-
-        const resultDiv = document.getElementById('scanner-result');
-        resultDiv.style.display = 'none';
+        const resultDiv = document.getElementById("scanner-result");
+        resultDiv.style.display = "none";
 
         try {
-            const res = await fetch('/admin/asistencia', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({codigoQr: codigo})
+            const eventoId = document.getElementById("evento-id-hidden").value;
+            const res  = await fetch("/admin/asistencia", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ codigoQr: codigo, eventoId: eventoId })
             });
-
             const data = await res.json();
-            resultDiv.style.display = 'block';
+            resultDiv.style.display = "block";
 
             if (!res.ok) {
-                resultDiv.className = 'scanner-result err';
-                resultDiv.textContent = '❌ ' + (data.error || 'Error desconocido');
+                resultDiv.className = "scanner-result err";
+                resultDiv.textContent = "❌ " + (data.error ?? "Error desconocido");
             } else if (data.ok) {
-                resultDiv.className = 'scanner-result ok';
-                resultDiv.textContent = '✓ ' + data.mensaje + ' — ' + data.participante;
+                resultDiv.className = "scanner-result ok";
+                resultDiv.textContent = "✓ " + data.mensaje + " — " + data.participante;
                 actualizarBadge(codigo);
-                toast('Asistencia registrada: ' + data.participante);
+                toast("Asistencia registrada: " + data.participante);
             } else {
-                resultDiv.className = 'scanner-result dup';
-                resultDiv.textContent = '⚠ ' + data.mensaje + ' — ' + data.participante;
+                resultDiv.className = "scanner-result dup";
+                resultDiv.textContent = "⚠ " + data.mensaje + " — " + data.participante;
             }
         } catch (e) {
-            console.error('Error:', e);
-            resultDiv.style.display = 'block';
-            resultDiv.className = 'scanner-result err';
-            resultDiv.textContent = 'Error de conexión';
+            resultDiv.style.display = "block";
+            resultDiv.className = "scanner-result err";
+            resultDiv.textContent = "❌ Error de conexión";
         }
 
-        if (inputEl) inputEl.value = '';
-        setTimeout(() => resultDiv.style.display = 'none', 5000);
+        inputEl.value = "";
+        setTimeout(() => resultDiv.style.display = "none", 5000);
     }
 
     function actualizarBadge(codigoQr) {
-        try {
-            const badge = document.querySelector(`span[data-qr="${CSS.escape(codigoQr)}"]`);
-            if (badge && !badge.classList.contains('badge-activo')) {
-                badge.textContent = '✓ Asistió';
-                badge.className = 'badge badge-activo';
-                const stat = document.getElementById('stat-asistieron');
-                if (stat) {
-                    stat.textContent = parseInt(stat.textContent || '0') + 1;
-                }
-            }
-        } catch (e) {
-            console.error('Error actualizando badge:', e);
+        const badge = document.querySelector(`span[data-qr="${CSS.escape(codigoQr)}"]`);
+        if (badge && !badge.classList.contains("badge-activo")) {
+            badge.textContent = "✓ Asistió";
+            badge.className   = "badge badge-activo";
+            const stat = document.getElementById("stat-asistieron");
+            stat.textContent  = parseInt(stat.textContent || "0") + 1;
         }
     }
 
     function leerArchivoQR(file) {
-        if (!file || !file.type.startsWith('image/')) {
-            toast('Selecciona una imagen válida', 'err');
-            return;
-        }
-
-        if (typeof jsQR === 'undefined') {
-            toast('Error: Librería QR no cargada', 'err');
-            return;
-        }
-
-        console.log('Procesando archivo:', file.name);
-        document.getElementById('imagen-debug').textContent = `Procesando: ${file.name}`;
-
+        if (!file || !file.type.startsWith("image/")) return;
         const reader = new FileReader();
-        reader.onload = e => procesarImagen(e.target.result, 'imagen');
-        reader.onerror = () => toast('Error al leer la imagen', 'err');
+        reader.onload = e => decodificarImagen(e.target.result);
         reader.readAsDataURL(file);
     }
 
     function onDrop(e) {
         e.preventDefault();
-        e.stopPropagation();
-        document.getElementById('zona-pegar').classList.remove('drag-over');
-
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            leerArchivoQR(files[0]);
-        }
+        document.getElementById("zona-pegar").classList.remove("drag-over");
+        const file = e.dataTransfer.files[0];
+        if (file) leerArchivoQR(file);
     }
 
-    document.addEventListener('paste', function (e) {
-        if (document.getElementById('modo-imagen').style.display === 'none') return;
-        if (typeof jsQR === 'undefined') return;
-
-        const items = e.clipboardData?.items;
-        if (!items) return;
-
+    document.addEventListener("paste", function(e) {
+        const modoImagen = document.getElementById("modo-imagen");
+        if (modoImagen.style.display === "none") return;
+        const items = e.clipboardData?.items ?? [];
         for (const item of items) {
-            if (item.type.startsWith('image/')) {
-                const file = item.getAsFile();
-                if (file) {
-                    leerArchivoQR(file);
-                    break;
-                }
-            }
+            if (item.type.startsWith("image/")) { leerArchivoQR(item.getAsFile()); break; }
         }
     });
 
-    function procesarImagen(src, fuente) {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-
+    function decodificarImagen(src) {
+        const zona = document.getElementById("zona-pegar");
+        const img  = new Image();
         img.onload = () => {
-            console.log(`Imagen cargada [${fuente}]:`, img.width, 'x', img.height);
-
-            const canvas = fuente === 'imagen'
-                ? document.getElementById('qr-canvas')
-                : document.getElementById('camara-canvas');
-
-            const ctx = canvas.getContext('2d');
-
-            let w = img.width, h = img.height;
-            const max = fuente === 'imagen' ? 1000 : 640;
-            if (w > max || h > max) {
-                const ratio = Math.min(max / w, max / h);
-                w = Math.floor(w * ratio);
-                h = Math.floor(h * ratio);
+            const canvas = document.getElementById("qr-canvas");
+            canvas.width  = img.width;
+            canvas.height = img.height;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+            const imageData = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+            if (code?.data) {
+                zona.style.borderColor = "#16a34a";
+                zona.innerHTML = `<div class="zona-icon">✅</div><p style="color:#16a34a">QR detectado — registrando…</p>`;
+                registrarAsistencia(code.data);
+            } else {
+                zona.style.borderColor = "#dc2626";
+                zona.innerHTML = `<div class="zona-icon">❌</div><p style="color:#dc2626">No se detectó ningún QR en la imagen</p>`;
             }
-
-            canvas.width = w;
-            canvas.height = h;
-
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, w, h);
-            ctx.drawImage(img, 0, 0, w, h);
-
-            try {
-                const imageData = ctx.getImageData(0, 0, w, h);
-                const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                    inversionAttempts: 'attemptBoth'
-                });
-
-                if (code?.data) {
-                    console.log('QR detectado:', code.data);
-
-                    if (fuente === 'imagen') {
-                        const zona = document.getElementById('zona-pegar');
-                        zona.style.borderColor = '#16a34a';
-                        zona.innerHTML = `<div class="zona-icon">✅</div><p style="color:#16a34a">QR detectado</p>`;
-                        document.getElementById('imagen-debug').textContent = `Código: ${code.data.substring(0, 30)}...`;
-                        setTimeout(resetZona, 3000);
-                    } else if (fuente === 'camara') {
-                        document.getElementById('camara-overlay').classList.add('detected');
-                        document.getElementById('camara-hint').textContent = '¡QR detectado!';
-                        document.getElementById('camara-debug').textContent = `Detectado: ${code.data.substring(0, 20)}...`;
-                    }
-
-                    if (code.data !== ultimoCodigo && !procesando) {
-                        ultimoCodigo = code.data;
-                        procesando = true;
-                        registrarAsistencia(code.data).finally(() => {
-                            setTimeout(() => {
-                                procesando = false;
-                                if (fuente === 'camara') {
-                                    document.getElementById('camara-overlay').classList.remove('detected');
-                                    document.getElementById('camara-hint').textContent = 'Apunta al código QR';
-                                    document.getElementById('camara-debug').textContent = 'Buscando...';
-                                }
-                            }, 3000);
-                        });
-                    }
-                } else {
-                    if (fuente === 'imagen') {
-                        const zona = document.getElementById('zona-pegar');
-                        zona.style.borderColor = '#dc2626';
-                        zona.innerHTML = `<div class="zona-icon">❌</div><p style="color:#dc2626">No se detectó QR</p>`;
-                        document.getElementById('imagen-debug').textContent = 'No se encontró código QR';
-                        setTimeout(resetZona, 3000);
-                    }
-                }
-            } catch (e) {
-                console.error('Error procesando imagen:', e);
-                if (fuente === 'imagen') {
-                    document.getElementById('imagen-debug').textContent = 'Error al procesar';
-                }
-            }
+            setTimeout(resetZona, 3000);
         };
-
-        img.onerror = () => {
-            console.error('Error cargando imagen');
-            if (fuente === 'imagen') {
-                const zona = document.getElementById('zona-pegar');
-                zona.style.borderColor = '#dc2626';
-                zona.innerHTML = `<div class="zona-icon">❌</div><p style="color:#dc2626">Error al cargar</p>`;
-                setTimeout(resetZona, 3000);
-            }
-        };
-
         img.src = src;
     }
 
     function resetZona() {
-        const zona = document.getElementById('zona-pegar');
-        zona.style.borderColor = '';
+        const zona = document.getElementById("zona-pegar");
+        zona.style.borderColor = "";
         zona.innerHTML = `
       <div class="zona-icon">🖼</div>
-      <p><strong>Clic</strong> para subir · <strong>Ctrl+V</strong> para pegar · <strong>Arrastra</strong> la imagen del QR</p>
+      <p><strong>Clic</strong> para subir · <strong>Ctrl+V</strong> para pegar · <strong>arrastra</strong> la imagen del QR</p>
       <input id="file-input" type="file" accept="image/*" style="display:none" onchange="leerArchivoQR(this.files[0])">`;
-        document.getElementById('imagen-debug').textContent = '';
+        zona.onclick = () => document.getElementById("file-input").click();
     }
 
     async function iniciarCamara() {
-        if (typeof jsQR === 'undefined') {
-            toast('Error: jsQR no cargado', 'err');
-            setTab('texto');
-            return;
-        }
-
-        ultimoCodigo = null;
-        procesando = false;
-        frameCount = 0;
-
-        const debugEl = document.getElementById('camara-debug');
-        debugEl.textContent = 'Iniciando cámara...';
-
+        ultimoCodigo = null; procesandoQR = false;
         try {
-            if (!navigator.mediaDevices?.getUserMedia) {
-                throw new Error('Tu navegador no soporta cámara');
-            }
-
-            const constraints = {
-                video: {
-                    facingMode: {ideal: 'environment'},
-                    width: {ideal: 640},
-                    height: {ideal: 480}
-                }
-            };
-
-            streamCamara = await navigator.mediaDevices.getUserMedia(constraints);
-            const video = document.getElementById('camara-video');
-
+            streamCamara = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } });
+            const video = document.getElementById("camara-video");
             video.srcObject = streamCamara;
-
-            video.onloadedmetadata = () => {
-                video.play();
-                debugEl.textContent = 'Cámara activa. Buscando QR...';
-                escanearConCamara();
-            };
-
+            await video.play();
+            rafCamara = requestAnimationFrame(tickCamara);
         } catch (err) {
-            console.error('Error cámara:', err);
-            debugEl.textContent = 'Error: ' + err.message;
-            toast('Error al acceder a la cámara: ' + err.message, 'err');
-            setTimeout(() => setTab('texto'), 2000);
+            toast("No se pudo acceder a la cámara: " + err.message, "err");
+            setTab("texto");
         }
     }
 
-    function escanearConCamara() {
-        const video = document.getElementById('camara-video');
-        const canvas = document.getElementById('camara-canvas');
-
-        if (!streamCamara || !video || video.readyState !== video.HAVE_ENOUGH_DATA) {
-            rafCamara = requestAnimationFrame(escanearConCamara);
-            return;
-        }
-
-        frameCount++;
-
-        if (frameCount % 10 === 0 && !procesando) {
-            if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
+    function tickCamara() {
+        const video  = document.getElementById("camara-video");
+        const canvas = document.getElementById("camara-canvas");
+        if (!streamCamara) return;
+        if (video.readyState >= video.HAVE_ENOUGH_DATA) {
+            canvas.width  = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext("2d").drawImage(video, 0, 0);
+            const imgData = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
+            const code    = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: "dontInvert" });
+            if (code?.data && code.data !== ultimoCodigo && !procesandoQR) {
+                ultimoCodigo = code.data; procesandoQR = true;
+                registrarAsistencia(code.data).finally(() => {
+                    procesandoQR = false;
+                    setTimeout(() => { ultimoCodigo = null; }, 4000);
+                });
             }
-
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = video.videoWidth;
-            tempCanvas.height = video.videoHeight;
-            const ctx = tempCanvas.getContext('2d');
-            ctx.drawImage(video, 0, 0);
-
-            procesarImagen(tempCanvas.toDataURL(), 'camara');
         }
-
-        rafCamara = requestAnimationFrame(escanearConCamara);
+        rafCamara = requestAnimationFrame(tickCamara);
     }
 
     function detenerCamara() {
-        console.log('Deteniendo cámara...');
-
-        if (rafCamara) {
-            cancelAnimationFrame(rafCamara);
-            rafCamara = null;
-        }
-
-        if (streamCamara) {
-            streamCamara.getTracks().forEach(track => track.stop());
-            streamCamara = null;
-        }
-
-        const video = document.getElementById('camara-video');
-        if (video) video.srcObject = null;
-
-        const overlay = document.getElementById('camara-overlay');
-        if (overlay) overlay.classList.remove('detected');
-
-        const hint = document.getElementById('camara-hint');
-        if (hint) hint.textContent = 'Apunta al código QR';
-
-        const debug = document.getElementById('camara-debug');
-        if (debug) debug.textContent = '';
+        if (rafCamara)    { cancelAnimationFrame(rafCamara); rafCamara = null; }
+        if (streamCamara) { streamCamara.getTracks().forEach(t => t.stop()); streamCamara = null; }
     }
 
-    function toast(msg, tipo) {
-        const t = document.getElementById('toast');
-        if (!t) return;
+    function toast(msg, tipo = "ok") {
+        const t = document.getElementById("toast");
         t.textContent = msg;
-        t.className = `toast toast-${tipo || 'ok'} show`;
-        setTimeout(() => t.className = 'toast', 3000);
+        t.className   = `toast toast-${tipo} show`;
+        setTimeout(() => t.className = "toast", 3000);
     }
 
-    document.getElementById('qr-input')?.addEventListener('keypress', e => {
-        if (e.key === 'Enter') registrarAsistencia();
-    });
+    document.getElementById("qr-input")
+        ?.addEventListener("keypress", e => { if (e.key === "Enter") registrarAsistencia(); });
 
-    window.addEventListener('beforeunload', detenerCamara);
-
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden && tabActual === 'camara') {
-            detenerCamara();
-        }
-    });
-
-    console.log('Sistema de escaneo cargado');
+    window.addEventListener("beforeunload", detenerCamara);
 </script>
 </body>
 </html>
