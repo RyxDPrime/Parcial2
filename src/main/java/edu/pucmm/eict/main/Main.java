@@ -980,103 +980,333 @@ public class Main {
             });
 
             // DEBUG: Generar QR de prueba y mostrarlo (temporal)
+            // DEBUG: Generar QR de prueba - VERSIÓN ROBUSTA
             config.routes.get("/debug/qr-test", ctx -> {
                 String testUuid = "550e8400-e29b-41d4-a716-446655440000";
                 Long testEventoId = 1L;
 
                 byte[] qr = QRServices.generarQRBytesEstructurado(testUuid, testEventoId);
-                String base64 = Base64.getEncoder().encodeToString(qr);
+                String base64 = java.util.Base64.getEncoder().encodeToString(qr);
 
-                ctx.contentType("text/html").result("""
+                // HTML con verificación explícita de jsQR
+                String html = """
         <!DOCTYPE html>
         <html>
         <head>
+            <meta charset="UTF-8">
             <title>Test QR</title>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
             <style>
-                body { font-family: sans-serif; padding: 20px; }
-                #qr-container { margin: 20px 0; }
-                #resultado { padding: 10px; margin-top: 10px; border-radius: 5px; }
-                .ok { background: #d4edda; color: #155724; }
-                .error { background: #f8d7da; color: #721c24; }
+                body { 
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                    padding: 20px; 
+                    max-width: 600px; 
+                    margin: 0 auto;
+                    line-height: 1.6;
+                }
+                h2 { color: #333; }
+                .section { 
+                    background: #f8f9fa; 
+                    padding: 15px; 
+                    border-radius: 8px; 
+                    margin: 15px 0;
+                    border-left: 4px solid #007bff;
+                }
+                #qr-container { 
+                    text-align: center; 
+                    padding: 20px;
+                    background: white;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }
+                #qr-image { max-width: 100%; height: auto; }
+                button { 
+                    background: #007bff; 
+                    color: white; 
+                    border: none; 
+                    padding: 12px 24px; 
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 16px;
+                    margin: 5px;
+                }
+                button:hover { background: #0056b3; }
+                #resultado { 
+                    padding: 15px; 
+                    margin-top: 15px; 
+                    border-radius: 6px;
+                    display: none;
+                    font-family: monospace;
+                    font-size: 14px;
+                }
+                .ok { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+                .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+                .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+                code { 
+                    background: #f4f4f4; 
+                    padding: 2px 6px; 
+                    border-radius: 3px;
+                    font-family: 'Courier New', monospace;
+                }
+                #log { 
+                    font-family: monospace; 
+                    font-size: 12px; 
+                    color: #666;
+                    margin-top: 20px;
+                    padding: 10px;
+                    background: #f8f9fa;
+                    border-radius: 4px;
+                    max-height: 200px;
+                    overflow-y: auto;
+                }
+                .log-entry { margin: 2px 0; }
             </style>
         </head>
         <body>
-            <h2>Test de QR</h2>
-            <p>Contenido esperado: <code>E1:550e8400-e29b-41d4-a716-446655440000</code></p>
+            <h2>🔍 Test de QR - Debug</h2>
             
-            <div id="qr-container">
-                <img id="qr-image" src="data:image/png;base64,%s" width="300">
+            <div class="section">
+                <strong>Contenido esperado:</strong> <code>E1:550e8400-e29b-41d4-a716-446655440000</code><br>
+                <strong>Tamaño:</strong> 40 caracteres (optimizado para QR)
             </div>
             
-            <button onclick="analizarQR()">Analizar QR con jsQR</button>
+            <div id="qr-container">
+                <img id="qr-image" src="data:image/png;base64,%s" width="350" alt="QR de prueba">
+                <p style="color: #666; font-size: 14px; margin-top: 10px;">
+                    👆 Este QR debería contener el código formateado
+                </p>
+            </div>
+            
+            <div style="text-align: center;">
+                <button onclick="verificarLibreria()">1️⃣ Verificar jsQR</button>
+                <button onclick="analizarQR()">2️⃣ Analizar QR</button>
+            </div>
+            
             <div id="resultado"></div>
             
-            <hr>
-            <h3>Subir imagen QR:</h3>
-            <input type="file" id="file-input" accept="image/*" onchange="analizarArchivo(this)">
+            <div class="section" style="border-left-color: #28a745;">
+                <h4>📤 Subir imagen QR externa:</h4>
+                <input type="file" id="file-input" accept="image/*" onchange="analizarArchivo(this)">
+            </div>
+            
+            <div id="log"></div>
+
+            <!-- Cargar jsQR desde múltiples fuentes como fallback -->
+            <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
             
             <script>
+                // Verificar que jsQR cargó correctamente
+                window.jsqrLoaded = (typeof jsQR !== 'undefined');
+                
+                function log(msg) {
+                    const time = new Date().toLocaleTimeString();
+                    const entry = document.createElement('div');
+                    entry.className = 'log-entry';
+                    entry.textContent = '[' + time + '] ' + msg;
+                    document.getElementById('log').appendChild(entry);
+                    console.log('[QR Debug]', msg);
+                }
+                
+                function mostrarResultado(html, tipo) {
+                    const div = document.getElementById('resultado');
+                    div.innerHTML = html;
+                    div.className = tipo;
+                    div.style.display = 'block';
+                    log('Resultado mostrado: ' + tipo);
+                }
+                
+                function verificarLibreria() {
+                    log('Verificando librería jsQR...');
+                    
+                    const tipo = typeof jsQR;
+                    const disponible = (tipo !== 'undefined');
+                    
+                    let html = '<h3>ℹ️ Verificación de jsQR</h3>';
+                    html += '<p><strong>typeof jsQR:</strong> <code>' + tipo + '</code></p>';
+                    html += '<p><strong>Disponible:</strong> ' + (disponible ? '✅ SÍ' : '❌ NO') + '</p>';
+                    
+                    if (disponible) {
+                        html += '<p style="color: #155724;">✅ La librería está cargada correctamente</p>';
+                        mostrarResultado(html, 'ok');
+                    } else {
+                        html += '<p style="color: #721c24;">❌ jsQR no está disponible. Intenta recargar la página.</p>';
+                        html += '<p>URL intentada: <code>https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js</code></p>';
+                        mostrarResultado(html, 'error');
+                    }
+                    
+                    log('jsQR disponible: ' + disponible);
+                }
+                
                 function analizarQR() {
+                    log('Iniciando análisis de QR...');
+                    
+                    // Verificar jsQR primero
+                    if (typeof jsQR === 'undefined') {
+                        mostrarResultado(
+                            '<h3>❌ Error: jsQR no disponible</h3>' +
+                            '<p>La librería jsQR no se cargó. Haz clic en "Verificar jsQR" primero.</p>',
+                            'error'
+                        );
+                        return;
+                    }
+                    
                     const img = document.getElementById('qr-image');
+                    log('Imagen natural: ' + img.naturalWidth + 'x' + img.naturalHeight);
+                    
+                    if (!img.naturalWidth) {
+                        mostrarResultado('<h3>❌ Error</h3><p>La imagen no se cargó correctamente</p>', 'error');
+                        return;
+                    }
+                    
+                    // Crear canvas oculto
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     
-                    canvas.width = img.naturalWidth * 2;
-                    canvas.height = img.naturalHeight * 2;
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    // Probar múltiples escalas
+                    const escalas = [2, 1.5, 1, 0.8];
+                    let codigoDetectado = null;
+                    let escalaUsada = 0;
                     
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                        inversionAttempts: "attemptBoth"
-                    });
+                    for (let escala of escalas) {
+                        const w = Math.floor(img.naturalWidth * escala);
+                        const h = Math.floor(img.naturalHeight * escala);
+                        
+                        canvas.width = w;
+                        canvas.height = h;
+                        ctx.imageSmoothingEnabled = false;
+                        ctx.drawImage(img, 0, 0, w, h);
+                        
+                        log('Probando escala ' + escala + ': ' + w + 'x' + h);
+                        
+                        try {
+                            const imageData = ctx.getImageData(0, 0, w, h);
+                            log('ImageData obtenido: ' + imageData.width + 'x' + imageData.height);
+                            
+                            // LLAMADA CORRECTA: jsQR en minúsculas
+                            const resultado = jsQR(
+                                imageData.data, 
+                                imageData.width, 
+                                imageData.height,
+                                { inversionAttempts: "attemptBoth" }
+                            );
+                            
+                            log('jsQR resultado: ' + (resultado ? 'DETECTADO' : 'null'));
+                            
+                            if (resultado && resultado.data) {
+                                codigoDetectado = resultado.data;
+                                escalaUsada = escala;
+                                break;
+                            }
+                        } catch (e) {
+                            log('Error en escala ' + escala + ': ' + e.message);
+                        }
+                    }
                     
-                    mostrarResultado(code);
+                    if (codigoDetectado) {
+                        const esEstructurado = codigoDetectado.startsWith('E');
+                        let html = '<h3>✅ QR Detectado</h3>';
+                        html += '<p><strong>Escala usada:</strong> ' + escalaUsada + 'x</p>';
+                        html += '<p><strong>Contenido:</strong></p>';
+                        html += '<code style="display: block; padding: 10px; background: #f8f9fa; word-break: break-all;">';
+                        html += escapeHtml(codigoDetectado);
+                        html += '</code>';
+                        html += '<p><strong>Formato estructurado:</strong> ' + (esEstructurado ? '✅ SÍ' : '❌ NO') + '</p>';
+                        
+                        if (esEstructurado) {
+                            const partes = codigoDetectado.split(':');
+                            html += '<p><strong>Evento ID:</strong> ' + partes[0].substring(1) + '</p>';
+                            html += '<p><strong>UUID:</strong> ' + partes[1] + '</p>';
+                        }
+                        
+                        mostrarResultado(html, 'ok');
+                    } else {
+                        mostrarResultado(
+                            '<h3>❌ No se detectó QR</h3>' +
+                            '<p>Intentado escalas: ' + escalas.join(', ') + '</p>' +
+                            '<p>Posibles causas:</p>' +
+                            '<ul>' +
+                            '<li>El QR está muy comprimido</li>' +
+                            '<li>El formato no es compatible con jsQR</li>' +
+                            '<li>Intenta descargar la imagen y subirla manualmente</li>' +
+                            '</ul>',
+                            'error'
+                        );
+                    }
                 }
                 
                 function analizarArchivo(input) {
                     const file = input.files[0];
-                    if (!file) return;
+                    if (!file) {
+                        log('No se seleccionó archivo');
+                        return;
+                    }
+                    
+                    log('Archivo: ' + file.name + ' (' + file.type + ', ' + file.size + ' bytes)');
                     
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         const img = new Image();
                         img.onload = function() {
+                            log('Imagen cargada: ' + img.width + 'x' + img.height);
+                            
                             const canvas = document.createElement('canvas');
                             const ctx = canvas.getContext('2d');
-                            canvas.width = img.width * 2;
-                            canvas.height = img.height * 2;
-                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                             
-                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                            const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                                inversionAttempts: "attemptBoth"
-                            });
+                            const escalas = [2, 1.5, 1];
+                            let detectado = false;
                             
-                            mostrarResultado(code);
+                            for (let escala of escalas) {
+                                const w = Math.floor(img.width * escala);
+                                const h = Math.floor(img.height * escala);
+                                
+                                canvas.width = w;
+                                canvas.height = h;
+                                ctx.imageSmoothingEnabled = false;
+                                ctx.drawImage(img, 0, 0, w, h);
+                                
+                                const imageData = ctx.getImageData(0, 0, w, h);
+                                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                                    inversionAttempts: "attemptBoth"
+                                });
+                                
+                                log('Escala ' + escala + ': ' + (code ? 'OK' : 'NO'));
+                                
+                                if (code && code.data) {
+                                    let html = '<h3>✅ QR Detectado (archivo)</h3>';
+                                    html += '<p><strong>Escala:</strong> ' + escala + '</p>';
+                                    html += '<code style="display: block; padding: 10px; background: #f8f9fa; word-break: break-all;">';
+                                    html += escapeHtml(code.data);
+                                    html += '</code>';
+                                    mostrarResultado(html, 'ok');
+                                    detectado = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (!detectado) {
+                                mostrarResultado('<h3>❌ No detectado</h3><p>Intentado escalas: ' + escalas.join(', ') + '</p>', 'error');
+                            }
                         };
                         img.src = e.target.result;
                     };
                     reader.readAsDataURL(file);
                 }
                 
-                function mostrarResultado(code) {
-                    const div = document.getElementById('resultado');
-                    if (code) {
-                        div.className = 'ok';
-                        div.innerHTML = '<strong>✅ QR Detectado:</strong><br>' + 
-                                       'Contenido: <code>' + code.data + '</code><br>' +
-                                       'Es estructurado: ' + (code.data.startsWith('E') ? 'SÍ' : 'NO');
-                    } else {
-                        div.className = 'error';
-                        div.innerHTML = '<strong>❌ No se detectó QR</strong><br>' +
-                                       'Intenta subir la imagen manualmente o usa la cámara';
-                    }
+                function escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
                 }
+                
+                // Auto-verificar al cargar
+                window.onload = function() {
+                    log('Página cargada, jsQR disponible: ' + (typeof jsQR !== 'undefined'));
+                };
             </script>
         </body>
         </html>
-        """.formatted(base64));
+        """.formatted(base64);
+
+                ctx.contentType("text/html").result(html);
             });
         }).start(7070);
 
