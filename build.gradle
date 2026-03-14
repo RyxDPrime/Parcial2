@@ -16,7 +16,7 @@ application {
 }
 
 dependencies {
-    // Javalin 7.x
+    // Javalin 7.0.1 y SLF4J
     implementation 'io.javalin:javalin:7.0.1'
     implementation 'org.slf4j:slf4j-simple:2.0.17'
 
@@ -43,12 +43,10 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-// Configuración del fat JAR
 shadowJar {
     archiveBaseName.set('parcial2-eventos')
     archiveClassifier.set('')
     archiveVersion.set('')
-    // Necesario para Javalin + SLF4J
     mergeServiceFiles()
 }
 

@@ -76,7 +76,6 @@
             overflow: hidden;
         }
 
-        /* Stats en fila */
         .stats-inline {
             display: flex;
             gap: 1.2rem;
@@ -97,7 +96,6 @@
             margin-top: 2px;
         }
 
-        /* Barra de ocupación */
         .ocupacion-wrap { }
         .ocupacion-label {
             display: flex;
@@ -118,7 +116,6 @@
             transition: width 0.4s ease;
         }
 
-        /* Botones de acción */
         .acciones-rapidas {
             display: flex;
             gap: 8px;
@@ -132,7 +129,6 @@
             border-top: 1px solid var(--borde);
         }
 
-        /* Modal de inscripción */
         #modal-inscripcion {
             display: none;
             position: fixed;
@@ -196,7 +192,6 @@
 
 <div class="layout">
 
-    <!-- Sidebar dinámico según rol -->
     <aside class="sidebar">
         <div class="sidebar-header">
             <div class="brand-dot"></div>
@@ -212,7 +207,6 @@
         </div>
         <nav class="sidebar-nav">
 
-            <!-- PARTICIPANTE -->
             <th:block th:if="${usuario != null and usuario.rol.name() == 'PARTICIPANTE'}">
                 <span class="sidebar-label">Explorar</span>
                 <a href="/eventos" class="sidebar-link activo">
@@ -223,7 +217,6 @@
                 </a>
             </th:block>
 
-            <!-- ADMIN -->
             <th:block th:if="${usuario != null and usuario.rol.name() == 'ADMIN'}">
                 <span class="sidebar-label">Administración</span>
                 <a href="/admin/usuarios" class="sidebar-link">
@@ -239,7 +232,6 @@
                 </a>
             </th:block>
 
-            <!-- ORGANIZADOR -->
             <th:block th:if="${usuario != null and usuario.rol.name() == 'ORGANIZADOR'}">
                 <span class="sidebar-label">Panel</span>
                 <a href="/admin/eventos" class="sidebar-link">
@@ -251,7 +243,6 @@
                 </a>
             </th:block>
 
-            <!-- Sin sesión -->
             <th:block th:if="${usuario == null}">
                 <span class="sidebar-label">Explorar</span>
                 <a href="/eventos" class="sidebar-link activo">
@@ -282,7 +273,6 @@
             </div>
         </div>
 
-        <!-- Buscador por nombre -->
         <form method="get" action="/eventos" style="margin-bottom:1.5rem;display:flex;gap:8px;max-width:480px">
             <input type="text" name="q"
                    th:value="${busqueda}"
@@ -295,7 +285,6 @@
                href="/eventos" class="btn btn-ghost" style="width:auto;padding:10px 14px">✕</a>
         </form>
 
-        <!-- Grid de tarjetas -->
         <div class="eventos-grid" th:if="${!#lists.isEmpty(eventos)}">
             <div class="evento-card" th:each="e : ${eventos}">
 
@@ -313,7 +302,6 @@
                 <div class="evento-card-body">
                     <p class="evento-desc" th:text="${e.descripcion}"></p>
 
-                    <!-- Stats en fila -->
                     <div class="stats-inline">
                         <div class="stat-item">
                             <div class="stat-num"
@@ -333,7 +321,6 @@
                         </div>
                     </div>
 
-                    <!-- Barra de ocupación -->
                     <div class="ocupacion-wrap"
                          th:with="pct=${e.cupoMaximo > 0 ? ((e.cupoMaximo - cuposDisponibles[e.id]) * 100 / e.cupoMaximo) : 0}">
                         <div class="ocupacion-label">
@@ -350,21 +337,18 @@
                 </div>
 
                 <div class="evento-card-footer">
-                    <!-- Sin sesión -->
                     <a th:if="${usuario == null}"
                        href="/login"
                        class="btn btn-primary" style="font-size:0.88rem;padding:9px">
                         Iniciar sesión para inscribirse
                     </a>
 
-                    <!-- Participante ya inscrito -->
                     <button th:if="${usuario != null and usuario.rol.name() == 'PARTICIPANTE' and #lists.contains(inscritosIds, e.id)}"
                             class="btn btn-ghost" disabled
                             style="font-size:0.88rem;padding:9px;opacity:0.7;cursor:default;width:100%">
                         ✓ Ya inscrito
                     </button>
 
-                    <!-- Participante no inscrito -->
                     <button th:if="${usuario != null and usuario.rol.name() == 'PARTICIPANTE' and !#lists.contains(inscritosIds, e.id)}"
                             class="btn btn-primary"
                             th:attr="data-id=${e.id}, data-cupo=${cuposDisponibles[e.id]}, data-total=${e.cupoMaximo}, data-titulo=${e.titulo}"
@@ -375,7 +359,6 @@
                         Inscribirse
                     </button>
 
-                    <!-- Admin/Organizador -->
                     <div th:if="${usuario != null and usuario.rol.name() != 'PARTICIPANTE'}"
                          class="acciones-rapidas">
                         <a th:href="@{/admin/eventos/{id}/inscripciones(id=${e.id})}"
@@ -392,7 +375,6 @@
             </div>
         </div>
 
-        <!-- Estado vacío -->
         <div class="empty-state" th:if="${#lists.isEmpty(eventos)}">
             <div style="font-size:2.5rem">📭</div>
             <p>No hay eventos disponibles en este momento.</p>
@@ -400,7 +382,6 @@
 
     </main>
 
-    <!-- Modal de Inscripción Exitosa con QR -->
     <div id="modal-inscripcion" onclick="cerrarModalInscripcionOnClickOutside(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="modal-close" onclick="cerrarModalInscripcion()" title="Cerrar">×</button>
@@ -447,7 +428,6 @@
                 return;
             }
 
-            // Actualizar botón
             btn.textContent = "Ya inscrito";
             btn.disabled = true;
             btn.classList.remove("btn-primary");
@@ -456,7 +436,6 @@
             btn.style.cursor = "default";
             btn.onclick = null;
 
-            // Actualizar stats y barra sin recargar
             const nuevoCupo = Math.max(0, cupo - 1);
             const usado = total - nuevoCupo;
             const pct   = total > 0 ? Math.round((usado / total) * 100) : 0;
@@ -472,7 +451,6 @@
                 barEl.style.background = pct >= 90 ? '#dc2626' : (pct >= 60 ? '#f59e0b' : '#2563eb');
             }
 
-            // Mostrar modal con QR
             mostrarModalInscripcion(data.inscripcionId, data.codigoQr, data.eventoTitulo || titulo);
             toast("¡Inscripción exitosa!");
         }
@@ -513,6 +491,6 @@
         }
     </script>
 
-</div><!-- /layout -->
+</div>
 </body>
 </html>

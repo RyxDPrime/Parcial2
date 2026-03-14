@@ -3,7 +3,6 @@ package edu.pucmm.eict.main.servicios;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
 import com.google.zxing.WriterException;
-import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
@@ -21,21 +20,16 @@ import javax.imageio.ImageIO;
 
 public class QRServices {
 
-    // Tamaño más grande para mejor lectura con cámara
     private static final int QR_WIDTH = 500;
     private static final int QR_HEIGHT = 500;
     private static final int MARGIN = 4; // Margen blanco grande (quiet zone)
 
-    /**
-     * Genera QR simple optimizado para lectura con cámara/jsQR
-     */
     public static byte[] generarQRBytes(String texto) {
         try {
             QRCodeWriter writer = new QRCodeWriter();
 
             Map<EncodeHintType, Object> hints = new HashMap<>();
             hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
-            // M alta = 15% de corrección, mejor que H para QR más simple
             hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M);
             hints.put(EncodeHintType.MARGIN, MARGIN);
 
@@ -47,7 +41,6 @@ public class QRServices {
                     hints
             );
 
-            // Convertir a BufferedImage con fondo blanco explícito
             BufferedImage image = new BufferedImage(QR_WIDTH, QR_HEIGHT, BufferedImage.TYPE_INT_RGB);
             Graphics2D graphics = image.createGraphics();
             graphics.setColor(Color.WHITE);
@@ -72,19 +65,12 @@ public class QRServices {
         }
     }
 
-    /**
-     * OPCIÓN B: QR estructurado con EVENTO ID + UUID
-     * Formato corto: E{eventoId}:{codigoQr} (más corto para QR más simple)
-     */
-    public static byte[] generarQRBytesEstructurado(String codigoQr, Long eventoId) {
+public static byte[] generarQRBytesEstructurado(String codigoQr, Long eventoId) {
         // Formato corto: E5:550e8400-e29b-41d4-a716-446655440000
         String contenido = String.format("E%d:%s", eventoId, codigoQr);
         return generarQRBytes(contenido);
     }
 
-    /**
-     * Clase para retornar resultado del parseo
-     */
     public static class ResultadoQR {
         public Long eventoId;
         public String codigoQr;
@@ -97,15 +83,11 @@ public class QRServices {
         }
     }
 
-    /**
-     * Parsea un QR estructurado (formato corto E{id}:{uuid})
-     */
     public static ResultadoQR parsearQREstructurado(String qrLeido) {
         if (qrLeido == null) {
             return new ResultadoQR(null, null, false);
         }
 
-        // Normaliza lo leído por cámara (espacios/saltos de línea son comunes)
         String contenido = qrLeido.trim();
         if (contenido.isEmpty()) {
             return new ResultadoQR(null, contenido, false);
@@ -115,7 +97,6 @@ public class QRServices {
         String codigoQr = contenido;
         boolean esEstructurado = false;
 
-        // Solo se considera estructurado si cumple exactamente E{id}:{codigo}
         if (contenido.startsWith("E")) {
             int colonIndex = contenido.indexOf(':');
             if (colonIndex > 1 && colonIndex < contenido.length() - 1) {
@@ -128,7 +109,6 @@ public class QRServices {
                         esEstructurado = true;
                     }
                 } catch (NumberFormatException e) {
-                    // Fallback a formato no estructurado (compatibilidad con QR viejos)
                     eventoId = null;
                     codigoQr = contenido;
                     esEstructurado = false;

@@ -190,7 +190,6 @@
         document.getElementById("stat-asistentes").textContent = data.totalAsistentes;
         document.getElementById("stat-pct").textContent = data.porcentaje + "%";
 
-        // Gráfico inscripciones por día
         new Chart(document.getElementById("chart-inscripciones"), {
             type: "bar",
             data: {
@@ -207,7 +206,6 @@
             options: chartOpts()
         });
 
-        // Gráfico asistencia por hora
         new Chart(document.getElementById("chart-asistencia"), {
             type: "bar",
             data: {

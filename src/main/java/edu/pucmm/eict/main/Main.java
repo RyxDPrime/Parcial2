@@ -61,7 +61,6 @@ public class Main {
                                 }
                             }
                         } catch (Exception ignored) {
-                            // Cookie inválida o expirada
                             ctx.removeCookie("rememberMe", "/");
                         }
                     }
@@ -103,7 +102,6 @@ public class Main {
                         }
 
                     } else if (!usuarios.isEmpty() && usuarios.getFirst().isBloqueado()) {
-                        // Usuario bloqueado
                         Map<String, Object> model = new HashMap<>();
                         model.put("error", "Tu cuenta ha sido bloqueada. Contacta al administrador.");
 
@@ -346,7 +344,6 @@ public class Main {
                         return;
                     }
 
-                    // 🔒 BLOQUEO GENERAL: No editar nada si está FINALIZADO
                     if (evento.getEstado() == EstadoEvento.FINALIZADO) {
                         ctx.redirect("/admin/eventos");
                         return;
@@ -406,7 +403,7 @@ public class Main {
                         evento.setLugar(ctx.formParam("lugar"));
                         evento.setEstado(EstadoEvento.POSPUESTO);
                     } else {
-                        // Modo editar
+
                         if (evento.getEstado() == EstadoEvento.PUBLICADO
                                 || evento.getEstado() == EstadoEvento.POSPUESTO) {
                             ctx.redirect("/admin/eventos");
@@ -537,12 +534,6 @@ public class Main {
                 }
             });
 
-            // ── INSCRIPCIONES ──────────────────────────────────────────────
-// Imports adicionales necesarios:
-// import edu.pucmm.eict.main.modelos.Inscripcion;
-// import edu.pucmm.eict.main.servicios.QRServices;
-
-// ── INSCRIBIRSE A UN EVENTO ────────────────────────────────────
             config.routes.post("/inscripciones", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
                 if (u == null) {
@@ -568,7 +559,6 @@ public class Main {
                         return;
                     }
 
-                    // Verificar inscripción duplicada
                     Long yaInscrito = session.createQuery(
                                     "SELECT COUNT(i) FROM Inscripcion i WHERE i.usuario.id = :uid AND i.evento.id = :eid", Long.class)
                             .setParameter("uid", u.getId())
@@ -580,7 +570,6 @@ public class Main {
                         return;
                     }
 
-                    // Verificar cupo disponible
                     Long inscritos = session.createQuery(
                                     "SELECT COUNT(i) FROM Inscripcion i WHERE i.evento.id = :eid", Long.class)
                             .setParameter("eid", eventoId)
@@ -591,7 +580,6 @@ public class Main {
                         return;
                     }
 
-                    // Crear inscripción (el constructor genera el UUID del QR automáticamente)
                     Usuario participante = session.find(Usuario.class, u.getId());
                     Inscripcion inscripcion = new Inscripcion(participante, evento);
 
@@ -608,7 +596,6 @@ public class Main {
                 }
             });
 
-// ── MIS INSCRIPCIONES (participante) ──────────────────────────
             config.routes.get("/mis-inscripciones", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
                 if (u == null) {
@@ -631,7 +618,6 @@ public class Main {
                 }
             });
 
-// ── CANCELAR INSCRIPCIÓN ───────────────────────────────────────
             config.routes.delete("/inscripciones/{id}", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
                 if (u == null) {
@@ -648,17 +634,14 @@ public class Main {
                         ctx.status(404).json(Map.of("error", "Inscripción no encontrada"));
                         return;
                     }
-                    // Solo el propio participante puede cancelar su inscripción
                     if (!inscripcion.getUsuario().getId().equals(u.getId())) {
                         ctx.status(403).json(Map.of("error", "No autorizado"));
                         return;
                     }
-                    // No se puede cancelar si el evento ya fue finalizado
                     if (inscripcion.getEvento().getEstado() == EstadoEvento.FINALIZADO) {
                         ctx.status(400).json(Map.of("error", "No se puede cancelar una inscripción de un evento finalizado"));
                         return;
                     }
-                    // FIX: no se puede cancelar si ya se registró asistencia
                     if (inscripcion.isAsistencia()) {
                         ctx.status(400).json(Map.of("error", "No se puede cancelar una inscripción con asistencia registrada"));
                         return;
@@ -672,7 +655,6 @@ public class Main {
                 }
             });
 
-// ── VER QR DE UNA INSCRIPCIÓN ──────────────────────────────────
             config.routes.get("/inscripciones/{id}/qr", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
                 if (u == null) {
@@ -690,13 +672,11 @@ public class Main {
                         return;
                     }
 
-                    // Validar que el usuario sea el dueño de la inscripción
                     if (!inscripcion.getUsuario().getId().equals(u.getId())) {
                         ctx.status(403).result("No autorizado - Esta inscripción no te pertenece");
                         return;
                     }
 
-                    // ✅ CORRECTO: Usar generarQRBytesEstructurado con 2 argumentos
                     byte[] qr = QRServices.generarQRBytesEstructurado(
                             inscripcion.getCodigoQr(),           // String: UUID de la inscripción
                             inscripcion.getEvento().getId()      // Long: ID del evento
@@ -707,7 +687,6 @@ public class Main {
                             .result(qr);
                 }
             });
-// ── LISTA DE INSCRIPCIONES POR EVENTO (admin/organizador) ──────
             config.routes.get("/admin/eventos/{id}/inscripciones", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
                 if (u == null || (u.getRol() != Rol.ADMIN && u.getRol() != Rol.ORGANIZADOR)) {
@@ -742,7 +721,6 @@ public class Main {
                     ));
                 }
             });
-// ── MARCAR ASISTENCIA (escaneo QR) ────────────────────────────
             config.routes.post("/admin/asistencia", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
                 if (u == null || (u.getRol() != Rol.ADMIN && u.getRol() != Rol.ORGANIZADOR)) {
@@ -770,7 +748,6 @@ public class Main {
                     return;
                 }
 
-                // OPCIÓN B: Parsear QR estructurado
                 QRServices.ResultadoQR parseado = QRServices.parsearQREstructurado(qrCrudo);
                 Long eventoIdDelQr = parseado.eventoId;
                 String codigoQr = parseado.codigoQr;
@@ -791,7 +768,6 @@ public class Main {
                     Evento evento = inscripcion.getEvento();
                     Usuario participante = inscripcion.getUsuario();
 
-                    // Si el QR venía estructurado, debe coincidir con la inscripción real.
                     if (eventoIdDelQr != null && !evento.getId().equals(eventoIdDelQr)) {
                         ctx.status(403).json(Map.of(
                                 "error", "Inconsistencia de datos",
@@ -801,7 +777,6 @@ public class Main {
                         return;
                     }
 
-                    // Validar evento de contexto (escáner abierto en un evento específico).
                     if (eventoIdEsperado != null && !evento.getId().equals(eventoIdEsperado)) {
                         ctx.status(403).json(Map.of(
                                 "error", "QR no válido para este evento",
@@ -813,7 +788,6 @@ public class Main {
                         return;
                     }
 
-                    // Validaciones de estado, puertas, bloqueo, asistencia...
                     if (evento.getEstado() == EstadoEvento.CANCELADO) {
                         ctx.status(400).json(Map.of("error", "El evento fue cancelado"));
                         return;
@@ -879,7 +853,6 @@ public class Main {
                 }
             });
 
-// ── RESUMEN / ESTADÍSTICAS DEL EVENTO ─────────────────────────
             config.routes.get("/admin/eventos/{id}/resumen", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
                 if (u == null || (u.getRol() != Rol.ADMIN && u.getRol() != Rol.ORGANIZADOR)) {
@@ -897,7 +870,6 @@ public class Main {
                 }
             });
 
-// ── API: datos de estadísticas (Fetch desde el frontend) ───────
             config.routes.get("/admin/eventos/{id}/stats", ctx -> {
                 Usuario u = ctx.sessionAttribute("usuario");
                 if (u == null || (u.getRol() != Rol.ADMIN && u.getRol() != Rol.ORGANIZADOR)) {
@@ -920,8 +892,6 @@ public class Main {
                     long totalAsistentes = inscripciones.stream().filter(Inscripcion::isAsistencia).count();
                     double porcentaje = totalInscritos > 0 ? (totalAsistentes * 100.0 / totalInscritos) : 0;
 
-                    // ── Inscripciones por día ───────────────────────────────
-                    // Agrupar por fecha (yyyy-MM-dd) de fechaInscripcion
                     java.util.TreeMap<String, Long> mapDia = new java.util.TreeMap<>();
                     java.time.format.DateTimeFormatter fmtDia = java.time.format.DateTimeFormatter.ofPattern("dd/MM");
                     for (Inscripcion i : inscripciones) {
@@ -939,8 +909,6 @@ public class Main {
                             })
                             .collect(java.util.stream.Collectors.toList());
 
-                    // ── Asistencia por hora ─────────────────────────────────
-                    // Agrupar por hora (0–23) de horaAsistencia
                     java.util.TreeMap<Integer, Long> mapHora = new java.util.TreeMap<>();
                     for (Inscripcion i : inscripciones) {
                         if (i.isAsistencia() && i.getHoraAsistencia() != null) {
@@ -970,105 +938,6 @@ public class Main {
                 }
             });
 
-            // DEBUG: Generar QR de prueba y mostrarlo (temporal)
-            config.routes.get("/debug/qr-test", ctx -> {
-                String testUuid = "550e8400-e29b-41d4-a716-446655440000";
-                Long testEventoId = 1L;
-
-                byte[] qr = QRServices.generarQRBytesEstructurado(testUuid, testEventoId);
-                String base64 = Base64.getEncoder().encodeToString(qr);
-
-                ctx.contentType("text/html").result("""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Test QR</title>
-            <script src="/jsQR.js"></script>
-            <style>
-                body { font-family: sans-serif; padding: 20px; }
-                #qr-container { margin: 20px 0; }
-                #resultado { padding: 10px; margin-top: 10px; border-radius: 5px; }
-                .ok { background: #d4edda; color: #155724; }
-                .error { background: #f8d7da; color: #721c24; }
-            </style>
-        </head>
-        <body>
-            <h2>Test de QR</h2>
-            <p>Contenido esperado: <code>E1:550e8400-e29b-41d4-a716-446655440000</code></p>
-            
-            <div id="qr-container">
-                <img id="qr-image" src="data:image/png;base64,%s" width="300">
-            </div>
-            
-            <button onclick="analizarQR()">Analizar QR con jsQR</button>
-            <div id="resultado"></div>
-            
-            <hr>
-            <h3>Subir imagen QR:</h3>
-            <input type="file" id="file-input" accept="image/*" onchange="analizarArchivo(this)">
-            
-            <script>
-                function analizarQR() {
-                    const img = document.getElementById('qr-image');
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    
-                    canvas.width = img.naturalWidth * 2;
-                    canvas.height = img.naturalHeight * 2;
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                        inversionAttempts: "attemptBoth"
-                    });
-                    
-                    mostrarResultado(code);
-                }
-                
-                function analizarArchivo(input) {
-                    const file = input.files[0];
-                    if (!file) return;
-                    
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const img = new Image();
-                        img.onload = function() {
-                            const canvas = document.createElement('canvas');
-                            const ctx = canvas.getContext('2d');
-                            canvas.width = img.width * 2;
-                            canvas.height = img.height * 2;
-                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                            
-                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                            const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                                inversionAttempts: "attemptBoth"
-                            });
-                            
-                            mostrarResultado(code);
-                        };
-                        img.src = e.target.result;
-                    };
-                    reader.readAsDataURL(file);
-                }
-                
-                function mostrarResultado(code) {
-                    const div = document.getElementById('resultado');
-                    if (code) {
-                        div.className = 'ok';
-                        div.innerHTML = '<strong>✅ QR Detectado:</strong><br>' + 
-                                       'Contenido: <code>' + code.data + '</code><br>' +
-                                       'Es estructurado: ' + (code.data.startsWith('E') ? 'SÍ' : 'NO');
-                    } else {
-                        div.className = 'error';
-                        div.innerHTML = '<strong>❌ No se detectó QR</strong><br>' +
-                                       'Intenta subir la imagen manualmente o usa la cámara';
-                    }
-                }
-            </script>
-        </body>
-        </html>
-        """.formatted(base64));
-            });
         }).start(7070);
 
         System.out.println("[Javalin] Servidor iniciado en http://localhost:7070");

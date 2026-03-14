@@ -1,12 +1,5 @@
-/* ================================================================
-   SISTEMA DE GESTIÓN DE EVENTOS ACADÉMICOS
-   Estilo: Moderno Minimalista — Azul
-   Fuentes: DM Sans (body) + DM Serif Display (headings)
-   ================================================================ */
-
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap');
 
-/* ── Variables ─────────────────────────────────────────────── */
 :root {
     --azul:          #2563eb;
     --azul-hover:    #1d4ed8;
@@ -25,7 +18,6 @@
     --t:             all 0.18s ease;
 }
 
-/* ── Reset ──────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 16px; scroll-behavior: smooth; }
 body {
@@ -50,14 +42,12 @@ h4 { font-size: 1.05rem; }
 a { color: var(--azul); text-decoration: none; transition: var(--t); }
 a:hover { color: var(--azul-hover); }
 
-/* ── AUTH ───────────────────────────────────────────────────── */
 .auth-wrapper {
     min-height: 100vh;
     display: grid;
     grid-template-columns: 1fr 1fr;
 }
 
-/* Panel izquierdo decorativo */
 .auth-panel {
     background: var(--azul);
     display: flex;
@@ -120,7 +110,6 @@ a:hover { color: var(--azul-hover); }
 }
 .auth-panel-dots span:first-child { background: #fff; }
 
-/* Panel derecho — formulario */
 .auth-form-panel {
     display: flex;
     align-items: center;
@@ -166,7 +155,6 @@ a:hover { color: var(--azul-hover); }
     margin: 1rem 0 1.8rem;
 }
 
-/* ── Formularios ────────────────────────────────────────────── */
 .field { margin-bottom: 1.1rem; }
 
 .field label {
@@ -219,7 +207,6 @@ a:hover { color: var(--azul-hover); }
     cursor: pointer;
 }
 
-/* ── Botones ────────────────────────────────────────────────── */
 .btn {
     display: inline-block;
     font-family: 'DM Sans', sans-serif;
@@ -283,7 +270,6 @@ a:hover { color: var(--azul-hover); }
 }
 .btn-success:hover { background: #f0fdf4; border-color: #16a34a; }
 
-/* ── Alertas ────────────────────────────────────────────────── */
 .alerta {
     padding: 10px 14px;
     border-radius: var(--radio);
@@ -317,13 +303,11 @@ a:hover { color: var(--azul-hover); }
 .auth-sep::before { left: 0; }
 .auth-sep::after  { right: 0; }
 
-/* ── LAYOUT ─────────────────────────────────────────────────── */
 .layout {
     display: flex;
     min-height: 100vh;
 }
 
-/* ── SIDEBAR ────────────────────────────────────────────────── */
 .sidebar {
     width: 256px;
     flex-shrink: 0;
@@ -337,7 +321,6 @@ a:hover { color: var(--azul-hover); }
     overflow-y: auto;
 }
 
-/* Cabecera del sidebar con brand */
 .sidebar-header {
     padding: 1.6rem 1.4rem 1.2rem;
     border-bottom: 1px solid var(--borde);
@@ -360,7 +343,6 @@ a:hover { color: var(--azul-hover); }
     line-height: 1.2;
 }
 
-/* Info del usuario logueado */
 .sidebar-user {
     padding: 1rem 1.4rem;
     border-bottom: 1px solid var(--borde);
@@ -406,7 +388,6 @@ a:hover { color: var(--azul-hover); }
     margin-top: 2px;
 }
 
-/* Nav links */
 .sidebar-nav { flex: 1; padding: 1rem 0; }
 
 .sidebar-label {
@@ -450,7 +431,6 @@ a:hover { color: var(--azul-hover); }
     flex-shrink: 0;
 }
 
-/* Footer del sidebar con logout */
 .sidebar-footer {
     padding: 1rem 1.4rem;
     border-top: 1px solid var(--borde);
@@ -476,7 +456,6 @@ a:hover { color: var(--azul-hover); }
     color: #dc2626;
 }
 
-/* ── CONTENIDO ──────────────────────────────────────────────── */
 .content {
     flex: 1;
     padding: 2rem 2.5rem;
@@ -493,7 +472,6 @@ a:hover { color: var(--azul-hover); }
 .page-header h2 { margin-bottom: 2px; }
 .page-header p  { font-size: 0.87rem; color: var(--texto-muted); }
 
-/* ── TABLA ──────────────────────────────────────────────────── */
 .table-wrap {
     background: var(--blanco);
     border: 1px solid var(--borde);
@@ -536,7 +514,6 @@ tbody td {
 
 tbody td strong { color: var(--texto); font-weight: 600; }
 
-/* ── BADGES ─────────────────────────────────────────────────── */
 .badge {
     display: inline-flex;
     align-items: center;
@@ -549,13 +526,12 @@ tbody td strong { color: var(--texto); font-weight: 600; }
 }
 
 .badge-admin   { background: #eff6ff; color: #1d4ed8; }
-.badge-org     { background: #fffbeb; color: #b45309; } /* ORGANIZADOR / FINALIZADO */
+.badge-org     { background: #fffbeb; color: #b45309; }
 .badge-part    { background: #f0fdf4; color: #16a34a; }
 .badge-activo  { background: #f0fdf4; color: #16a34a; }
 .badge-bloq    { background: #fef2f2; color: #dc2626; }
 .badge-prot    { background: var(--fondo); color: var(--texto-muted); }
 
-/* ── SELECT ROL ─────────────────────────────────────────────── */
 .select-rol {
     border: 1.5px solid var(--borde);
     border-radius: 8px;
@@ -573,7 +549,6 @@ tbody td strong { color: var(--texto); font-weight: 600; }
     box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
 }
 
-/* ── TOAST ──────────────────────────────────────────────────── */
 .toast {
     position: fixed;
     bottom: 24px; right: 24px;
@@ -595,7 +570,6 @@ tbody td strong { color: var(--texto); font-weight: 600; }
 .toast.toast-ok  { background: #16a34a; }
 .toast.toast-err { background: #dc2626; }
 
-/* ── RESPONSIVE ─────────────────────────────────────────────── */
 @media (max-width: 900px) {
     .auth-wrapper { grid-template-columns: 1fr; }
     .auth-panel   { display: none; }

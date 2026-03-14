@@ -6,7 +6,7 @@
     <title>Inscripciones — Admin</title>
     <link rel="stylesheet" href="/Style.css">
     <style>
-        /* ── Tarjeta resumen del evento ── */
+
         .evento-resumen-card {
             background: var(--blanco);
             border: 1px solid var(--borde);
@@ -42,7 +42,6 @@
             margin-bottom: 1rem;
             line-height: 1.5;
         }
-        /* Stats en fila */
         .stats-inline {
             display: flex;
             gap: 1.5rem;
@@ -64,7 +63,7 @@
             color: var(--texto-muted);
             margin-top: 3px;
         }
-        /* Barra de ocupación */
+
         .progress-bar {
             height: 7px;
             background: var(--borde);
@@ -83,7 +82,6 @@
             color: var(--texto-muted);
             margin-bottom: 4px;
         }
-        /* Botones de acción rápida */
         .acciones-rapidas {
             display: flex;
             gap: 8px;
@@ -93,7 +91,7 @@
         .acciones-rapidas .btn { flex: 1; min-width: 120px; font-size: 0.88rem; }
         .acciones-rapidas .btn-icon { flex: 0; width: auto; padding: 8px 12px; }
 
-        /* ── Scanner ── */
+
         .scanner-card {
             background: var(--blanco);
             border: 1px solid var(--borde);
@@ -132,7 +130,6 @@
         .badge-prot   { background: #f3f4f6; color: #374151; }
         .badge-estado { background: rgba(255,255,255,0.2); color: #fff; font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; }
 
-        /* Zona de pegado */
         #zona-pegar {
             border: 2px dashed var(--borde); border-radius: var(--radio);
             padding: 2rem 1rem; text-align: center; cursor: pointer;
@@ -200,10 +197,8 @@
             <a href="/admin/eventos" class="btn btn-ghost btn-sm" style="width:auto">← Volver</a>
         </div>
 
-        <!-- Campo oculto con el ID del evento para validar QR -->
         <input type="hidden" id="evento-id-hidden" th:value="${evento.id}">
 
-        <!-- ── Scanner QR ── -->
         <div class="scanner-card" th:if="${evento.estado.name() != 'BORRADOR'}">
             <h3>📷 Registrar Asistencia</h3>
 
@@ -259,7 +254,6 @@
             <div class="scanner-result" id="scanner-result"></div>
         </div>
 
-        <!-- ── Tabla de inscritos ── -->
         <div class="table-wrap">
             <table>
                 <thead>
@@ -295,14 +289,11 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- Cargar jsQR LOCAL (no CDN) -->
 <script src="/jsQR.js"></script>
 
 <script>
-    // ========== CONFIGURACIÓN ==========
     const EVENTO_ID = document.getElementById('evento-id-hidden').value;
 
-    // ========== TABS ==========
     function setTab(tab) {
         ['texto', 'imagen', 'camara'].forEach(t => {
             document.getElementById('modo-' + t).style.display = t === tab ? 'block' : 'none';
@@ -313,12 +304,10 @@
         if (tab === 'texto') document.getElementById('qr-input').focus();
     }
 
-    // ========== REGISTRO DE ASISTENCIA ==========
     async function registrarAsistencia(codigoManual) {
         const input = document.getElementById('qr-input');
         let codigo = (codigoManual || input.value).trim();
 
-        // Limpiar formato estructurado E{id}:uuid
         if (codigo.startsWith('E') && codigo.includes(':')) {
             codigo = codigo.substring(codigo.indexOf(':') + 1);
         }
@@ -375,7 +364,6 @@
         }
     }
 
-    // ========== MODO IMAGEN ==========
     function leerArchivoQR(file) {
         if (!file) return;
         const reader = new FileReader();
@@ -396,7 +384,6 @@
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
 
-            // Probar múltiples escalas
             for (const escala of [2, 1.5, 1]) {
                 canvas.width = img.width * escala;
                 canvas.height = img.height * escala;
@@ -420,7 +407,6 @@
         img.src = src;
     }
 
-    // ========== MODO CÁMARA ==========
     let streamCamara = null;
     let rafCamara = null;
 
@@ -457,7 +443,6 @@
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0);
 
-        // Analizar región central
         const region = canvas.width * 0.6;
         const x = (canvas.width - region) / 2;
         const y = (canvas.height - region) / 2;
@@ -485,7 +470,6 @@
         }
     }
 
-    // ========== UTILIDADES ==========
     function toast(msg, tipo = 'ok') {
         const t = document.getElementById('toast');
         t.textContent = msg;
@@ -493,7 +477,6 @@
         setTimeout(() => t.className = 'toast', 3000);
     }
 
-    // Event listeners
     document.getElementById('qr-input')?.addEventListener('keypress', e => {
         if (e.key === 'Enter') registrarAsistencia();
     });

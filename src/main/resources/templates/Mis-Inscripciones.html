@@ -88,7 +88,6 @@
 
 <div class="layout">
 
-    <!-- Sidebar participante -->
     <aside class="sidebar">
         <div class="sidebar-header">
             <div class="brand-dot"></div>
@@ -130,7 +129,6 @@
             </a>
         </div>
 
-        <!-- Grid de inscripciones -->
         <div class="insc-grid" th:if="${!#lists.isEmpty(inscripciones)}">
             <div class="insc-card" th:each="i : ${inscripciones}">
 
@@ -143,7 +141,6 @@
                 </div>
 
                 <div class="insc-card-body">
-                    <!-- FIX: mostrar aviso si el evento fue eliminado -->
                     <div style="font-size:0.83rem;color:#dc2626;background:#fef2f2;padding:8px 12px;border-radius:8px;border:1px solid #fca5a5"
                          th:if="${i.evento == null}">
                         ⚠️ Este evento fue eliminado por el administrador
@@ -156,7 +153,6 @@
                         📍 <span th:text="${i.evento.lugar}"></span>
                     </div>
 
-                    <!-- QR Code -->
                     <div class="qr-wrap" th:if="${i.evento != null and i.evento.estado.name() != 'CANCELADO'}">
                         <img alt="Código QR de entrada"
                              onclick="ampliarQR(this)"
@@ -181,7 +177,6 @@
                 </div>
 
                 <div class="insc-card-footer">
-                    <!-- Cancelar solo si el evento está activo, no asistió y evento no fue borrado -->
                     <button class="btn btn-sm btn-danger"
                             onclick="cancelarInscripcion(this)"
                             style="width:auto"
@@ -189,7 +184,6 @@
                             th:if="${i.evento != null and !i.asistencia and (i.evento.estado.name() == 'PUBLICADO' or i.evento.estado.name() == 'BORRADOR')}">
                         Cancelar inscripción
                     </button>
-                    <!-- FIX: ya asistió — no puede cancelar -->
                     <span style="font-size:0.82rem;color:#16a34a;font-weight:600"
                           th:if="${i.asistencia}">
                         ✓ Asistencia registrada — inscripción no cancelable
@@ -211,7 +205,6 @@
             </div>
         </div>
 
-        <!-- Estado vacío -->
         <div class="empty-state" th:if="${#lists.isEmpty(inscripciones)}">
             <div style="font-size:2.5rem">🎫</div>
             <p>Aún no te has inscrito en ningún evento.</p>
@@ -223,7 +216,6 @@
     </main>
 </div>
 
-<!-- Modal QR ampliado -->
 <div id="qr-modal" onclick="cerrarModal()"
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9998;
             align-items:center;justify-content:center;cursor:pointer">
