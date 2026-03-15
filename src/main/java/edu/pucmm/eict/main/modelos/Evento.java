@@ -28,7 +28,7 @@ public class Evento {
     private int cupoMaximo;
 
     @Column(nullable = false)
-    private int horasApertura = 2;
+    private Integer horasApertura = 0;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
